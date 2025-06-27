@@ -1,6 +1,22 @@
 import React from 'react';
+import { getEditorsForComponent, getMetaForComponent } from './ComponentDefinitions';
+import * as PropertyEditors from './PropertyEditors';
 
 function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
+  // 속성 업데이트 함수
+  const updateProperty = (propKey, value) => {
+    if (!selectedComp) return;
+    
+    const updatedComp = {
+      ...selectedComp,
+      props: {
+        ...selectedComp.props,
+        [propKey]: value
+      }
+    };
+    onUpdate(updatedComp);
+  };
+
   return (
     <div style={{
       width: 280,
@@ -36,182 +52,96 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       }}>
         {selectedComp ? (
           <div>
-            {/* 컴포넌트 정보 */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 20,
-              padding: '8px 12px',
-              backgroundColor: '#f0f2f5',
-              borderRadius: 6
-            }}>
-              <span style={{ fontSize: 16 }}>
-                {selectedComp.type === 'button' ? '🔘' : '📝'}
-              </span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1d2129' }}>
-                  {selectedComp.type === 'button' ? 'Button' : 'Text'}
-                </div>
-                <div style={{ fontSize: 11, color: '#65676b' }}>
-                  {selectedComp.id}
-                </div>
-              </div>
-            </div>
-
-            {/* 텍스트 입력 - 기존 기능 유지, 스타일만 변경 */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ 
-                display: 'block',
-                fontSize: 13, 
-                color: '#333', 
-                fontWeight: 500,
-                marginBottom: 6
-              }}>
-                Text
-              </label>
-              <input
-                value={selectedComp.props.text}
-                onChange={e => onUpdate({ ...selectedComp, props: { ...selectedComp.props, text: e.target.value } })}
-                style={{
-                  width: '100%',
+            {/* 컴포넌트 정보 - 동적으로 메타데이터 사용 */}
+            {(() => {
+              const meta = getMetaForComponent(selectedComp.type);
+              return (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 20,
                   padding: '8px 12px',
-                  fontSize: 14,
-                  border: '1px solid #ddd',
-                  borderRadius: 6,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#0066FF'}
-                onBlur={(e) => e.target.style.borderColor = '#ddd'}
-              />
-            </div>
-
-            {/* 구분선 */}
-            <div style={{ height: 1, backgroundColor: '#eee', margin: '16px 0' }} />
-
-            {/* 폰트 크기 - 기존 기능 유지, 스타일만 변경 */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                marginBottom: 6
-              }}>
-                <label style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>
-                  Font Size
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <input
-                    type="number"
-                    value={selectedComp.props.fontSize}
-                    onChange={e => onUpdate({ ...selectedComp, props: { ...selectedComp.props, fontSize: Number(e.target.value) } })}
-                    style={{
-                      width: 60,
-                      padding: '4px 8px',
-                      fontSize: 12,
-                      textAlign: 'right',
-                      border: '1px solid #ddd',
-                      borderRadius: 4,
-                      outline: 'none'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#0066FF'}
-                    onBlur={(e) => e.target.style.borderColor = '#ddd'}
-                  />
-                  <span style={{ fontSize: 11, color: '#666' }}>px</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 구분선 */}
-            <div style={{ height: 1, backgroundColor: '#eee', margin: '16px 0' }} />
-
-            {/* 색상 섹션 헤더 */}
-            <div style={{ 
-              fontSize: 12, 
-              color: '#65676b', 
-              fontWeight: 600, 
-              marginBottom: 12,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              Colors
-            </div>
-
-            {/* 텍스트 색상 - 기존 기능 유지, 스타일만 변경 */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between'
-              }}>
-                <span style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>Text Color</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 4,
-                      border: '1px solid #ddd',
-                      backgroundColor: selectedComp.props.color,
-                      cursor: 'pointer',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                  <input
-                    type="color"
-                    value={selectedComp.props.color}
-                    onChange={e => onUpdate({ ...selectedComp, props: { ...selectedComp.props, color: e.target.value } })}
-                    style={{
-                      width: 32,
-                      height: 24,
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 버튼 배경색 - 기존 기능 유지, 스타일만 변경 */}
-            {selectedComp.type === 'button' && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between'
+                  backgroundColor: '#f0f2f5',
+                  borderRadius: 6
                 }}>
-                  <span style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>Background</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 4,
-                        border: '1px solid #ddd',
-                        backgroundColor: selectedComp.props.bg,
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <input
-                      type="color"
-                      value={selectedComp.props.bg}
-                      onChange={e => onUpdate({ ...selectedComp, props: { ...selectedComp.props, bg: e.target.value } })}
-                      style={{
-                        width: 32,
-                        height: 24,
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer'
-                      }}
-                    />
+                  <span style={{ fontSize: 16 }}>
+                    {meta.icon}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1d2129' }}>
+                      {meta.label}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#65676b' }}>
+                      {selectedComp.id}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
+
+            {/* 동적 에디터 렌더링 */}
+            {(() => {
+              const editors = getEditorsForComponent(selectedComp.type);
+              
+              if (editors.length === 0) {
+                return (
+                  <div style={{
+                    padding: '20px',
+                    textAlign: 'center',
+                    color: '#65676b',
+                    fontSize: 14
+                  }}>
+                    No editors available for this component type
+                  </div>
+                );
+              }
+
+              return editors.map((editorConfig, index) => {
+                const EditorComponent = PropertyEditors[editorConfig.editor];
+                
+                if (!EditorComponent) {
+                  console.warn(`Editor "${editorConfig.editor}" not found`);
+                  return null;
+                }
+
+                // 구분선 추가 (첫 번째 에디터 제외)
+                const showDivider = index > 0 && 
+                  (editorConfig.editor === 'ColorEditor' || 
+                   editorConfig.editor === 'BackgroundColorEditor');
+
+                return (
+                  <div key={editorConfig.propKey}>
+                    {/* 색상 섹션 전에 구분선 및 헤더 */}
+                    {showDivider && index === 2 && (
+                      <>
+                        <div style={{ height: 1, backgroundColor: '#eee', margin: '16px 0' }} />
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: '#65676b', 
+                          fontWeight: 600, 
+                          marginBottom: 12,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Colors
+                        </div>
+                      </>
+                    )}
+
+                    <EditorComponent
+                      value={selectedComp.props[editorConfig.propKey]}
+                      onChange={(value) => updateProperty(editorConfig.propKey, value)}
+                      label={editorConfig.label}
+                      placeholder={editorConfig.placeholder}
+                      min={editorConfig.min}
+                      max={editorConfig.max}
+                      suffix={editorConfig.suffix}
+                    />
+                  </div>
+                );
+              });
+            })()}
 
             {/* 구분선 */}
             <div style={{ height: 1, backgroundColor: '#eee', margin: '16px 0' }} />

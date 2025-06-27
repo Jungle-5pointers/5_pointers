@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import EditorPage from './pages/EditorPage';
+import PropertyEditorTest from './pages/PropertyEditorTest';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -47,6 +48,8 @@ function App() {
             isLoggedIn ? <EditorPage /> : <Navigate to="/login" replace />
           }
         />
+        {/* 속성 에디터 테스트 페이지 */}
+        <Route path="/test/property-editor" element={<PropertyEditorTest />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -30,6 +30,7 @@ function MainPage() {
       <button
         style={{
           width: '100%',
+          marginBottom: 12,
           padding: 12,
           fontSize: 16,
           background: '#007bff',
@@ -40,6 +41,24 @@ function MainPage() {
         onClick={() => navigate('/login')}
       >
         Get Started Now
+      </button>
+      
+      {/* 테스트 페이지 링크 추가 */}
+      <hr style={{ margin: '20px 0', border: '1px solid #ddd' }} />
+      <p style={{ fontSize: 14, color: '#666', marginBottom: 12 }}>개발 테스트</p>
+      <button
+        style={{
+          width: '100%',
+          padding: 12,
+          fontSize: 14,
+          background: '#28a745',
+          color: 'white',
+          border: 'none',
+          borderRadius: 4
+        }}
+        onClick={() => navigate('/test/property-editor')}
+      >
+        🧪 속성 에디터 테스트
       </button>
     </div>
   );

@@ -1,0 +1,19 @@
+{
+  "type": "map",
+  "label": "Dynamic Map",
+  "icon": "🗺️",
+  "defaultProps": {
+    "lat": 37.5665,
+    "lng": 126.9780,
+    "zoom": 13,
+    "width": 400,
+    "height": 300
+  },
+  "props": [
+    { "name": "lat", "type": "number", "label": "Latitude" },
+    { "name": "lng", "type": "number", "label": "Longitude" },
+    { "name": "zoom", "type": "number", "label": "Zoom" },
+    { "name": "width", "type": "number", "label": "Width" },
+    { "name": "height", "type": "number", "label": "Height" }
+  ]
+} 

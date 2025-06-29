@@ -4,10 +4,12 @@ export { default as TextRenderer } from './TextRenderer';
 export { default as LinkRenderer } from './LinkRenderer';
 export { default as AttendRenderer } from './AttendRenderer';
 export { default as ImageRenderer } from './ImageRenderer';
+export { default as DdayRenderer } from './DdayRenderer.jsx';
+export { default as WeddingContactRenderer } from './WeddingContactRenderer.jsx';
 
 // 컴포넌트 타입별 렌더러 매핑 함수
-export const getComponentRenderer = (componentType) => {
-  switch (componentType) {
+export function getRendererByType(type) {
+  switch (type) {
     case 'button':
       return ButtonRenderer;
     case 'text':
@@ -18,8 +20,13 @@ export const getComponentRenderer = (componentType) => {
       return AttendRenderer;
     case 'image':
       return ImageRenderer;
+    case 'map':
+      return MapView;
+    case 'dday':
+      return DdayRenderer;
+    case 'weddingContact':
+      return WeddingContactRenderer;
     default:
-      console.warn(`Unknown component type: ${componentType}`);
-      return TextRenderer; // 기본값
+      return null;
   }
-}; 
+}

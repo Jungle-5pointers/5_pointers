@@ -26,14 +26,19 @@ export class AuthService {
   }
 
   async login(user: Users) {
+
+    console.log('Login - User object:', user);
+    console.log('Login - User ID:', user.id, 'Type:', typeof user.id);
+
     const payload = { userId: user.id, email: user.email, nickname: user.nickname };
+    console.log('Login - JWT payload:', payload);
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
 
   async socialLogin(user: any) {
-    const payload = { email: user.email, sub: user.id };
+    const payload = { userId: user.id, email: user.email, nickname: user.nickname };
     return {
       access_token: this.jwtService.sign(payload),
     };

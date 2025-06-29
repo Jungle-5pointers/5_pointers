@@ -9,7 +9,6 @@ function ComponentLibrary({ onDragStart, components, roomId }) {
 
   // 배포 핸들러
   const handleDeploy = async () => {
-
     if (!domainName.trim()) {
       setShowDomainInput(true);
       return;
@@ -18,20 +17,27 @@ function ComponentLibrary({ onDragStart, components, roomId }) {
     setIsDeploying(true);
     
     try {
-      const response = await fetch('http://localhost:3000/generator/deploy', {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/users/pages/${roomId}/deploy`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
-          projectId: roomId,
-          userId: domainName.trim(),
-          components: components || []
+          components: components || [],
+          domain: domainName.trim()
         })
       });
       
-      const data = await response.json();
-      setDeployedUrl(data.url);
-      setShowDomainInput(false);
-      alert(`배포 완료! 사이트 URL: ${data.url}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDeployedUrl(`http://${domainName.trim()}.localhost:3001`);
+        setShowDomainInput(false);
+        alert(`배포 완료! 도메인: ${domainName.trim()}`);
+      } else {
+        throw new Error('배포 실패');
+      }
     } catch (error) {
       console.error('배포 실패:', error);
       alert('배포에 실패했습니다. 다시 시도해주세요.');

@@ -15,9 +15,35 @@ function DashboardPage({ user, onLogout }) {
     { id: 'pub1', title: 'My Portfolio Site' },
   ]);
 
-  const handleCreateNew = () => {
-    const newId = randomId();
-    navigate(`/editor/${newId}`);
+  const handleCreateNew = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token ? 'exists' : 'missing');
+      if (token) console.log('Token preview:', token.substring(0, 20) + '...');
+      
+      const subdomain = randomId();
+      const response = await fetch('http://localhost:3000/users/pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ subdomain, title: 'Untitled' })
+      });
+      
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response:', responseText);
+      
+      if (response.ok) {
+        const page = JSON.parse(responseText);
+        navigate(`/editor/${page.id}`);
+      } else {
+        console.error('API Error:', response.status, responseText);
+      }
+    } catch (error) {
+      console.error('Failed to create page:', error);
+    }
   };
 
   return (

@@ -28,7 +28,8 @@ function LoginPage({ onLogin }) {
           .then(res => res.json())
           .then(data => {
             if (data.access_token) {
-              onLogin({ nickname: provider + 'User' }); // 실제로는 토큰 저장 및 사용자 정보 파싱 필요
+              localStorage.setItem('token', data.access_token);
+              onLogin({ nickname: provider + 'User' });
               navigate('/dashboard');
               // URL에서 code 파라미터 제거
               window.history.replaceState({}, document.title, url.pathname);
@@ -54,6 +55,7 @@ function LoginPage({ onLogin }) {
       });
       const data = await res.json();
       if (res.ok && data.access_token) {
+        localStorage.setItem('token', data.access_token);
         onLogin({ nickname: email.split('@')[0] });
         navigate('/dashboard');
       } else {

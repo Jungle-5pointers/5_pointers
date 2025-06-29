@@ -1,10 +1,14 @@
 {
+  "dependencies": {
+    "react-datepicker": "^8.4.0",
   "name": "5_pointers",
   "version": "1.0.0",
   "scripts": {
     "subdomain-server": "node subdomain-server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "mysql2": "^3.14.1"
   }
+}
 }

@@ -10,3 +10,5 @@ export { default as TextStyleEditor } from './TextStyleEditor';
 export { default as ImageSourceEditor } from './ImageSourceEditor';
 export { default as ObjectFitEditor } from './ObjectFitEditor';
 export { default as BorderRadiusEditor } from './BorderRadiusEditor';
+export { default as PhoneEditor } from './PhoneEditor';
+export { default as DateEditor } from './DateEditor';

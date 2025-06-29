@@ -1,0 +1,32 @@
+{
+  "type": "weddingContact",
+  "label": "연락처 카드",
+  "edit": {
+    "groomName": { "label": "신랑 이름", "type": "text" },
+    "groomPhone": { "label": "신랑 전화번호", "type": "text" },
+    "brideName": { "label": "신부 이름", "type": "text" },
+    "bridePhone": { "label": "신부 전화번호", "type": "text" },
+    "groomFatherName": { "label": "신랑 아버지 이름", "type": "text" },
+    "groomFatherPhone": { "label": "신랑 아버지 전화번호", "type": "text" },
+    "groomMotherName": { "label": "신랑 어머니 이름", "type": "text" },
+    "groomMotherPhone": { "label": "신랑 어머니 전화번호", "type": "text" },
+    "brideFatherName": { "label": "신부 아버지 이름", "type": "text" },
+    "brideFatherPhone": { "label": "신부 아버지 전화번호", "type": "text" },
+    "brideMotherName": { "label": "신부 어머니 이름", "type": "text" },
+    "brideMotherPhone": { "label": "신부 어머니 전화번호", "type": "text" }
+  },
+  "defaultProps": {
+    "groomName": "신랑",
+    "groomPhone": "",
+    "brideName": "신부",
+    "bridePhone": "",
+    "groomFatherName": "",
+    "groomFatherPhone": "",
+    "groomMotherName": "",
+    "groomMotherPhone": "",
+    "brideFatherName": "",
+    "brideFatherPhone": "",
+    "brideMotherName": "",
+    "brideMotherPhone": ""
+  }
+} 

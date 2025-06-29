@@ -1,0 +1,13 @@
+{
+  "type": "dday",
+  "label": "D-Day",
+  "icon": "📅",
+  "edit": {
+    "title": { "label": "제목", "type": "text" },
+    "targetDate": { "label": "목표 날짜", "type": "date" }
+  },
+  "defaultProps": {
+    "title": "D-Day",
+    "targetDate": "2024-12-31"
+  }
+} 

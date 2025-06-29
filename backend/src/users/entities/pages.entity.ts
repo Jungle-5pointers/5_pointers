@@ -11,6 +11,9 @@ export class Pages {
   @ManyToOne(() => Users, user => user.pages, { onDelete: 'CASCADE' })
   owner: Users;
 
+  @Column({ name: 'user_id' })
+  userId: number;
+
   @Column({ unique: true })
   subdomain: string;
 

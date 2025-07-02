@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Templates } from '../users/entities/templates.entity';
-import { Pages } from '../users/entities/pages.entity';
+import { Pages, PageStatus } from '../users/entities/pages.entity';
 import { Users } from '../users/entities/users.entity';
 
 @Injectable()
@@ -150,7 +150,7 @@ export class TemplatesService {
       content: newContent,
       owner: user,
       userId,
-      status: 'DRAFT'
+      status: PageStatus.DRAFT
     });
 
     const savedPage = await this.pagesRepository.save(newPage);

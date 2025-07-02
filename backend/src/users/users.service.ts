@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Users, AuthProvider } from './entities/users.entity'
-import { Pages } from './entities/pages.entity'
+import { Pages, PageStatus } from './entities/pages.entity'
 import { Submissions } from './entities/submissions.entity'
 import * as bcrypt from 'bcryptjs';
 
@@ -45,7 +45,7 @@ export class UsersService {
       userId: userId,
       subdomain,
       title,
-      status: 'DRAFT'
+      status: PageStatus.DRAFT
     });
     return this.pagesRepository.save(page);
   }

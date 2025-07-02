@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ComponentList } from '../components/definitions';
-import { API_BASE_URL } from '../../config';
 
 function ComponentLibrary({ onDragStart, components, roomId, isOpen = true, onToggle }) {
   const [showDomainInput, setShowDomainInput] = useState(false);
@@ -50,7 +49,7 @@ function ComponentLibrary({ onDragStart, components, roomId, isOpen = true, onTo
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch(`${API_BASE_URL}/users/pages/${roomId}/deploy`, {
+      const response = await fetch(`http://localhost:3000/users/pages/${roomId}/deploy`, {
         method: 'POST',
         headers,
         body: JSON.stringify({

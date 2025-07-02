@@ -19,6 +19,7 @@ export class GeneratorController {
    */
   @Post('deploy')
   async deploy(@Body() deployDto: DeployDto) {
+    console.log('🚀 Deploy request received:', deployDto);
     return this.generatorService.deploy(deployDto);
   }
 
@@ -31,5 +32,27 @@ export class GeneratorController {
   @Get('deployments/:pageId')
   async getDeployments(@Param('pageId') pageId: string) {
     return this.generatorService.getDeployments(pageId);
+  }
+
+  /**
+   * 특정 페이지의 배포된 컴포넌트 데이터 조회 (서브도메인 렌더링용)
+   * GET /generator/page/:pageId
+   * @param pageId - 조회할 페이지 ID
+   * @returns 페이지의 컴포넌트 데이터
+   */
+  @Get('page/:pageId')
+  async getPageData(@Param('pageId') pageId: string) {
+    return this.generatorService.getPageData(pageId);
+  }
+
+  /**
+   * 서브도메인으로 페이지 데이터 조회
+   * GET /generator/subdomain/:subdomain
+   * @param subdomain - 조회할 서브도메인
+   * @returns 페이지 컴포넌트 데이터
+   */
+  @Get('subdomain/:subdomain')
+  async getPageBySubdomain(@Param('subdomain') subdomain: string) {
+    return this.generatorService.getPageBySubdomain(subdomain);
   }
 }

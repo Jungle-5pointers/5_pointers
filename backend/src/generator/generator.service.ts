@@ -1,16 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeployDto } from './dto/deploy.dto';
-import { Pages } from '../users/entities/pages.entity';
+import { Pages, PageStatus } from '../users/entities/pages.entity';
 import { Submissions } from '../users/entities/submissions.entity';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class GeneratorService {
-  private readonly deployPath = path.join(process.cwd(), '..', 'deployed-sites');
-
   constructor(
     @InjectRepository(Pages)
     private pagesRepository: Repository<Pages>,
@@ -26,51 +22,52 @@ export class GeneratorService {
   async deploy(deployDto: DeployDto): Promise<{ url: string }> {
     const { projectId, userId, components } = deployDto;
     
-    // 1. 페이지 존재 여부 확인 - pages 테이블에서 projectId로 조회
-    const page = await this.pagesRepository.findOne({ where: { id: projectId } });
+    // 1. projectId 유효성 확인
+    if (!projectId) {
+      throw new Error('Project ID is required');
+    }
+    
+    // 2. pages 테이블에 레코드가 없으면 생성, 있으면 DEPLOYED 상태로 업데이트
+    let page = await this.pagesRepository.findOne({ where: { id: projectId } });
     if (!page) {
-      throw new Error('Page not found');
+      page = this.pagesRepository.create({
+        subdomain: deployDto.domain || `${userId}-${projectId}`,
+        title: 'Deployed Page',
+        status: PageStatus.DEPLOYED, // 배포 상태로 설정
+        userId: parseInt(userId.replace(/\D/g, '')) || 1 // userId에서 숫자만 추출
+      });
+      await this.pagesRepository.save(page);
+    } else {
+      // 기존 페이지가 있으면 DEPLOYED 상태로 업데이트
+      page.status = PageStatus.DEPLOYED;
+      await this.pagesRepository.save(page);
     }
     
-    // 2. 서브도메인 생성 - userId와 pageId를 조합하여 고유한 서브도메인 생성
-    // 예: user1-abc123 → user1-abc123.localhost:3001
-    const subdomain = `${userId}-${projectId}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    const deployDir = path.join(this.deployPath, subdomain);
+    // 2. 서브도메인 생성 - 사용자가 입력한 도메인을 우선 사용
+    const userDomain = deployDto.domain?.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const subdomain = userDomain || `${userId}-${projectId}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
     
-    // 3. 배포용 디렉토리 생성
-    // deployed-sites/ 루트 디렉토리가 없으면 생성
-    if (!fs.existsSync(this.deployPath)) {
-      fs.mkdirSync(this.deployPath, { recursive: true });
-    }
-    // 서브도메인별 디렉토리 생성 (deployed-sites/user1-abc123/)
-    if (!fs.existsSync(deployDir)) {
-      fs.mkdirSync(deployDir, { recursive: true });
-    }
-    
-    // 4. 컴포넌트 배열을 HTML로 변환
-    const html = this.generateHTML(components, projectId);
-    
-    // 5. 정적 HTML 파일 생성 - 서브도메인 서버에서 서빙할 파일
-    fs.writeFileSync(path.join(deployDir, 'index.html'), html);
-    
-    // 6. 최종 배포 URL 생성
+    // 3. 최종 배포 URL 생성 (정적 파일 없이 동적 렌더링)
     const url = `http://${subdomain}.localhost:3001`;
     
-    // 7. 배포 정보를 데이터베이스에 저장
+    // 4. 배포 정보를 데이터베이스에 저장 (정적 파일 없이 동적 렌더링)
     // submissions 테이블의 data 컬럼에 JSON 형태로 저장
     const deploymentData = {
-      components,        // 배포된 컴포넌트 데이터
+      components,        // 배포된 컴포넌트 데이터 (SSR에서 사용)
       deployedUrl: url,  // 접근 가능한 URL
       deployedAt: new Date().toISOString(), // 배포 시간
-      subdomain          // 생성된 서브도메인
+      subdomain,         // 생성된 서브도메인
+      domain: subdomain, // 서브도메인 서버에서 검색용 (사용자 입력 도메인)
+      userDomain: userDomain, // 사용자가 입력한 원본 도메인
+      projectId,         // 프로젝트 ID 추가
     };
     
-    // 8. 기존 배포 기록이 있는지 확인 (component_id='deployment'로 구분)
+    // 5. 기존 배포 기록이 있는지 확인 (component_id='deployment'로 구분)
     let submission = await this.submissionsRepository.findOne({ 
       where: { pageId: projectId, component_id: 'deployment' }
     });
     
-    // 9. 배포 정보 저장 또는 업데이트
+    // 6. 배포 정보 저장 또는 업데이트
     if (submission) {
       // 기존 배포가 있으면 업데이트 (재배포)
       submission.data = deploymentData;
@@ -109,47 +106,81 @@ export class GeneratorService {
   }
 
   /**
-   * 컴포넌트 배열을 완전한 HTML 문서로 변환
-   * @param components - 노코드 에디터에서 생성된 컴포넌트 배열
-   * @param projectId - 페이지 ID (HTML 제목에 사용)
-   * @returns 완성된 HTML 문자열
+   * 특정 페이지의 배포된 컴포넌트 데이터 조회 (서브도메인 렌더링용)
+   * @param pageId - 조회할 페이지 ID
+   * @returns 페이지의 컴포넌트 데이터
    */
-  private generateHTML(components: any[], projectId: string): string {
-    // 각 컴포넌트를 HTML 요소로 변환
-    const componentHTML = components.map(comp => {
-      // 컴포넌트 타입별로 적절한 HTML 태그 생성
-      switch (comp.type) {
-        case 'text':
-          // 텍스트 컴포넌트 → div 태그
-          return `<div style="position: absolute; left: ${comp.x}px; top: ${comp.y}px; color: ${comp.props.color}; font-size: ${comp.props.fontSize}px;">${comp.props.text}</div>`;
-        case 'button':
-          // 버튼 컴포넌트 → button 태그
-          return `<button style="position: absolute; left: ${comp.x}px; top: ${comp.y}px; background: ${comp.props.bg}; color: ${comp.props.color}; font-size: ${comp.props.fontSize}px; border: none; padding: 12px; border-radius: 8px; cursor: pointer;">${comp.props.text}</button>`;
-        case 'link':
-          // 링크 컴포넌트 → a 태그
-          return `<a href="${comp.props.href}" style="position: absolute; left: ${comp.x}px; top: ${comp.y}px; color: ${comp.props.color}; font-size: ${comp.props.fontSize}px; text-decoration: none;">${comp.props.text}</a>`;
-        default:
-          // 알 수 없는 컴포넌트 → 기본 div 태그
-          return `<div style="position: absolute; left: ${comp.x}px; top: ${comp.y}px;">${comp.props.text || ''}</div>`;
-      }
-    }).join(''); // 모든 컴포넌트 HTML을 하나의 문자열로 결합
+  async getPageData(pageId: string) {
+    // submissions 테이블에서 해당 페이지의 배포 정보 조회
+    const submission = await this.submissionsRepository.findOne({
+      where: { pageId, component_id: 'deployment' }
+    });
+    
+    // 배포 기록이 없으면 null 반환
+    if (!submission || !submission.data) {
+      return null;
+    }
+    
+    // 배포된 컴포넌트 데이터 반환
+    return { 
+      components: submission.data.components || []
+    };
+  }
 
-    // 완전한 HTML 문서 구조 생성
-    return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deployed Site - ${projectId}</title>
-    <style>
-        /* 기본 스타일 리셋 및 폰트 설정 */
-        body { margin: 0; padding: 0; font-family: Inter, sans-serif; }
-        * { box-sizing: border-box; }
-    </style>
-</head>
-<body>
-    ${componentHTML}
-</body>
-</html>`;
+  /**
+   * 서브도메인으로 페이지 데이터 조회
+   * @param subdomain - 조회할 서브도메인
+   * @returns 페이지 컴포넌트 데이터
+   */
+  async getPageBySubdomain(subdomain: string) {
+    try {
+      console.log('Searching for subdomain:', subdomain);
+      
+      // submissions 테이블에서 모든 배포 데이터 조회
+      const submissions = await this.submissionsRepository.find({
+        where: { component_id: 'deployment' }
+      });
+      
+      console.log('Found submissions:', submissions.length);
+      
+      // data JSON에서 여러 필드로 찾기 (우선순위: domain > subdomain > userDomain)
+      const targetSubmission = submissions.find(submission => {
+        const data = submission.data;
+        if (!data) return false;
+        
+        // 여러 필드에서 매칭 시도
+        const domainMatch = data.domain === subdomain;
+        const subdomainMatch = data.subdomain === subdomain;
+        const userDomainMatch = data.userDomain === subdomain;
+        
+        console.log('Checking submission:', {
+          id: submission.id,
+          domain: data.domain,
+          subdomain: data.subdomain,
+          userDomain: data.userDomain,
+          projectId: data.projectId,
+          searchTerm: subdomain,
+          domainMatch,
+          subdomainMatch,
+          userDomainMatch
+        });
+        
+        return domainMatch || subdomainMatch || userDomainMatch;
+      });
+      
+      if (!targetSubmission) {
+        console.log('No matching submission found for subdomain:', subdomain);
+        throw new NotFoundException(`Subdomain "${subdomain}" not found`);
+      }
+      
+      console.log('Found matching submission:', targetSubmission.data);
+      
+      return {
+        components: targetSubmission.data.components || []
+      };
+    } catch (error) {
+      console.error('Error in getPageBySubdomain:', error);
+      throw error;
+    }
   }
 }

@@ -3,11 +3,6 @@ import { Users } from './users.entity';
 import { PageMembers } from './page_members.entity';
 import { Submissions } from './submissions.entity';
 
-export enum PageStatus {
-  DRAFT = 'DRAFT',
-  DEPLOYED = 'DEPLOYED',
-}
-
 @Entity('pages')
 export class Pages {
   @PrimaryGeneratedColumn('uuid')
@@ -28,12 +23,8 @@ export class Pages {
   @Column({ type: 'json', nullable: true })
   content: any;
 
- @Column({
-    type: 'enum',
-    enum: PageStatus,
-    default: PageStatus.DRAFT,
-  })
-  status: PageStatus;
+  @Column({ default: 'DRAFT' })
+  status: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

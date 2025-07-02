@@ -11,7 +11,7 @@ export class DeployDto {
   
   /** 노코드 에디터에서 생성된 컴포넌트 배열 - HTML로 변환될 데이터 */
   components: any[];
-
-  /** 사용자가 입력한 커스텀 도메인 이름 */
+  
+  /** 사용자가 입력한 도메인 이름 (선택사항) */
   domain?: string;
 }

@@ -19,7 +19,6 @@ export class GeneratorController {
    */
   @Post('deploy')
   async deploy(@Body() deployDto: DeployDto) {
-    console.log('🚀 Deploy request received:', deployDto);
     return this.generatorService.deploy(deployDto);
   }
 
@@ -35,10 +34,10 @@ export class GeneratorController {
   }
 
   /**
-   * 특정 페이지의 배포된 컴포넌트 데이터 조회 (서브도메인 렌더링용)
+   * 페이지 데이터 조회 (Next.js 렌더링용)
    * GET /generator/page/:pageId
    * @param pageId - 조회할 페이지 ID
-   * @returns 페이지의 컴포넌트 데이터
+   * @returns 페이지 컴포넌트 데이터
    */
   @Get('page/:pageId')
   async getPageData(@Param('pageId') pageId: string) {
@@ -53,6 +52,19 @@ export class GeneratorController {
    */
   @Get('subdomain/:subdomain')
   async getPageBySubdomain(@Param('subdomain') subdomain: string) {
-    return this.generatorService.getPageBySubdomain(subdomain);
+    try {
+      return await this.generatorService.getPageBySubdomain(subdomain);
+    } catch (error) {
+      console.error('Controller error:', error);
+      return { error: error.message, subdomain };
+    }
+  }
+
+  /**
+   * 테스트 API
+   */
+  @Get('test/:subdomain')
+  async testSubdomain(@Param('subdomain') subdomain: string) {
+    return { message: 'Test successful', subdomain, timestamp: new Date() };
   }
 }

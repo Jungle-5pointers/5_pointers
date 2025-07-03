@@ -8,16 +8,14 @@ function randomId() {
 
 function DashboardPage({ user, onLogout }) {
   const navigate = useNavigate();
-  const [drafts] = useState([
-    { id: 'draft1', title: 'Wedding Invitation (Draft)' },
-    { id: 'draft2', title: 'Birthday Party (Draft)' },
-  ]);
-  const [published] = useState([
-    { id: 'pub1', title: 'My Portfolio Site' },
-  ]);
+  const [myPages, setMyPages] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [pagesLoading, setPagesLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, pageId: null, title: '' });
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -46,11 +44,36 @@ function DashboardPage({ user, onLogout }) {
     }
   };
 
+  // 내 페이지 목록 조회
+  const fetchMyPages = async () => {
+    try {
+      setPagesLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/users/pages/my-pages`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMyPages(data);
+      }
+    } catch (error) {
+      console.error('페이지 목록 조회 실패:', error);
+    } finally {
+      setPagesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTemplates(selectedCategory);
+    fetchMyPages();
   }, [selectedCategory]);
 
-  // 템플릿으로 페이지 생성 (캔버스와 동일한 API 사용)
+  // 템플릿으로 페이지 생성
   const handleCreateFromTemplate = async (templateId) => {
     try {
       const token = localStorage.getItem('token');
@@ -59,68 +82,129 @@ function DashboardPage({ user, onLogout }) {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/templates/${templateId}/create-page`, {
+      const response = await fetch(`${API_BASE_URL}/users/pages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          templateId: templateId,
           title: `Template Page ${Date.now()}`,
           subdomain: `template-${Date.now()}`
         })
       });
 
       if (response.ok) {
-        const pageData = await response.json();
-        console.log('템플릿 API 응답:', pageData);
-        
-        // 템플릿 컴포넌트들을 에디터로 전달
-        if (pageData.content) {
-          const newRoomId = randomId();
-          navigate(`/editor/${newRoomId}`, { 
-            state: { templateComponents: pageData.content } 
-          });
-        } else {
-          alert('템플릿에 컴포넌트 데이터가 없습니다.');
-        }
+        const newPage = await response.json();
+        console.log('새 페이지 생성:', newPage);
+        navigate(`/editor/${newPage.id}`);
       } else {
-        alert('템플릿 로드에 실패했습니다.');
+        alert('템플릿 페이지 생성에 실패했습니다.');
       }
     } catch (error) {
-      console.error('템플릿 로드 실패:', error);
-      alert('템플릿 로드에 실패했습니다.');
+      console.error('템플릿 페이지 생성 실패:', error);
+      alert('템플릿 페이지 생성에 실패했습니다.');
+    }
+  };
+
+  // 인라인 제목 수정 시작
+  const startEditTitle = (pageId, currentTitle) => {
+    setEditingId(pageId);
+    setEditingTitle(currentTitle);
+  };
+
+  // 인라인 제목 수정 취소
+  const cancelEditTitle = () => {
+    setEditingId(null);
+    setEditingTitle('');
+  };
+
+  // 인라인 제목 수정 저장
+  const saveEditTitle = async (pageId) => {
+    if (!editingTitle.trim()) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/pages/${pageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: editingTitle.trim() })
+      });
+      
+      if (response.ok) {
+        fetchMyPages();
+        setEditingId(null);
+        setEditingTitle('');
+      }
+    } catch (error) {
+      console.error('제목 수정 실패:', error);
+    }
+  };
+
+  // 삭제 모달 열기
+  const openDeleteModal = (pageId, title) => {
+    setDeleteModal({ isOpen: true, pageId, title });
+  };
+
+  // 삭제 모달 닫기
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, pageId: null, title: '' });
+  };
+
+  // 페이지 삭제 실행
+  const confirmDeletePage = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/users/pages/${deleteModal.pageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        fetchMyPages();
+        closeDeleteModal();
+      }
+    } catch (error) {
+      console.error('페이지 삭제 실패:', error);
     }
   };
 
   const handleCreateNew = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token ? 'exists' : 'missing');
-      if (token) console.log('Token preview:', token.substring(0, 20) + '...');
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
       
-      const subdomain = randomId();
-              const response = await fetch(`${API_BASE_URL}/users/pages`, {
+      const response = await fetch(`${API_BASE_URL}/users/pages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ subdomain, title: 'Untitled' })
+        body: JSON.stringify({ 
+          subdomain: `page-${Date.now()}`,
+          title: 'Untitled' 
+        })
       });
       
-      console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Response:', responseText);
-      
       if (response.ok) {
-        const page = JSON.parse(responseText);
-        navigate(`/editor/${page.id}`);
+        const newPage = await response.json();
+        console.log('새 페이지 생성:', newPage);
+        navigate(`/editor/${newPage.id}`);
       } else {
-        console.error('API Error:', response.status, responseText);
+        alert('페이지 생성에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Failed to create page:', error);
+      console.error('페이지 생성 실패:', error);
+      alert('페이지 생성에 실패했습니다.');
     }
   };
 
@@ -272,25 +356,108 @@ function DashboardPage({ user, onLogout }) {
               <div>
                 <h3 className="text-xl font-bold text-slate-800">임시 저장</h3>
                 <span className="ml-2 px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
-                  {drafts.length}개
+                  {myPages.filter(page => page.status === 'DRAFT').length}개
                 </span>
               </div>
             </div>
             <div className="space-y-4">
-              {drafts.map(draft => (
-                <div 
-                  key={draft.id} 
-                  className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200 rounded-lg cursor-pointer transition-all duration-300 group hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-800 font-medium">{draft.title}</span>
-                    <svg className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+              {pagesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+                  <p className="text-slate-500 mt-2">로딩 중...</p>
                 </div>
-              ))}
-              {drafts.length === 0 && (
+              ) : (
+                myPages.filter(page => page.status === 'DRAFT').map(draft => (
+                  <div 
+                    key={draft.id} 
+                    className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200 rounded-lg transition-all duration-300 group hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div 
+                        onClick={() => editingId !== draft.id && navigate(`/editor/${draft.id}`)}
+                        className={`flex-1 ${editingId !== draft.id ? 'cursor-pointer' : ''}`}
+                      >
+                        {editingId === draft.id ? (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEditTitle(draft.id);
+                                if (e.key === 'Escape') cancelEditTitle();
+                              }}
+                              className="flex-1 px-2 py-1 text-slate-800 font-medium bg-white border border-amber-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveEditTitle(draft.id);
+                              }}
+                              className="p-1 text-green-600 hover:text-green-700"
+                              title="저장"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelEditTitle();
+                              }}
+                              className="p-1 text-red-600 hover:text-red-700"
+                              title="취소"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-slate-800 font-medium">{draft.title}</span>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {new Date(draft.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditTitle(draft.id, draft.title);
+                          }}
+                          className="p-2 text-slate-400 hover:text-amber-600 transition-colors"
+                          title="제목 수정"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteModal(draft.id, draft.title);
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                          title="페이지 삭제"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                        <svg className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {!pagesLoading && myPages.filter(page => page.status === 'DRAFT').length === 0 && (
                 <div className="text-center py-8 text-slate-500">
                   <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -312,28 +479,112 @@ function DashboardPage({ user, onLogout }) {
               <div>
                 <h3 className="text-xl font-bold text-slate-800">배포된 페이지</h3>
                 <span className="ml-2 px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
-                  {published.length}개
+                  {myPages.filter(page => page.status === 'DEPLOYED').length}개
                 </span>
               </div>
             </div>
             <div className="space-y-4">
-              {published.map(pub => (
-                <div 
-                  key={pub.id} 
-                  className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 border border-emerald-200 rounded-lg cursor-pointer transition-all duration-300 group hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-800 font-medium">{pub.title}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-emerald-700 bg-emerald-200 px-2 py-1 rounded-full font-medium">Live</span>
-                      <svg className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+              {pagesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+                  <p className="text-slate-500 mt-2">로딩 중...</p>
+                </div>
+              ) : (
+                myPages.filter(page => page.status === 'DEPLOYED').map(pub => (
+                  <div 
+                    key={pub.id} 
+                    className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 border border-emerald-200 rounded-lg transition-all duration-300 group hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div 
+                        onClick={() => editingId !== pub.id && navigate(`/editor/${pub.id}`)}
+                        className={`flex-1 ${editingId !== pub.id ? 'cursor-pointer' : ''}`}
+                      >
+                        {editingId === pub.id ? (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEditTitle(pub.id);
+                                if (e.key === 'Escape') cancelEditTitle();
+                              }}
+                              className="flex-1 px-2 py-1 text-slate-800 font-medium bg-white border border-emerald-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveEditTitle(pub.id);
+                              }}
+                              className="p-1 text-green-600 hover:text-green-700"
+                              title="저장"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelEditTitle();
+                              }}
+                              className="p-1 text-red-600 hover:text-red-700"
+                              title="취소"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-slate-800 font-medium">{pub.title}</span>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {new Date(pub.updatedAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-emerald-600 mt-1">
+                              {pub.subdomain}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-emerald-700 bg-emerald-200 px-2 py-1 rounded-full font-medium">Live</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditTitle(pub.id, pub.title);
+                          }}
+                          className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
+                          title="제목 수정"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteModal(pub.id, pub.title);
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                          title="페이지 삭제"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                        <svg className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {published.length === 0 && (
+                ))
+              )}
+              {!pagesLoading && myPages.filter(page => page.status === 'DEPLOYED').length === 0 && (
                 <div className="text-center py-8 text-slate-500">
                   <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
@@ -345,6 +596,41 @@ function DashboardPage({ user, onLogout }) {
           </div>
         </div>
       </div>
+      {/* 삭제 확인 모달 */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                페이지 삭제
+              </h3>
+              <p className="text-slate-600 mb-6">
+                <span className="font-medium text-slate-800">"{deleteModal.title}"</span> 페이지를 삭제하시겠습니까?<br/>
+                <span className="text-sm text-red-600">이 작업은 되돌릴 수 없습니다.</span>
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeDeleteModal}
+                  className="flex-1 px-4 py-3 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={confirmDeletePage}
+                  className="flex-1 px-4 py-3 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium transition-colors"
+                >
+                  삭제하기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

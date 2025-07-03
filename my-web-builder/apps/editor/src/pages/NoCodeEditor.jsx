@@ -154,29 +154,59 @@ function NoCodeEditor() {
     }
   }, [isConnected]);
 
- // 템플릿 로딩 - YJS 초기화 대기
-  const loadedTemplateRef = useRef(null);
+
+ // 페이지 데이터 로딩
+  const [pageLoaded, setPageLoaded] = useState(false);
+  const [pageTitle, setPageTitle] = useState('Untitled');
   
   useEffect(() => {
-    const templateComponents = location.state?.templateComponents;
-    if (templateComponents && Array.isArray(templateComponents) && collaboration.ydoc) {
-      // 이전에 로딩한 템플릿과 다른지 확인
-      const templateKey = JSON.stringify(templateComponents.map(c => c.id));
-      if (loadedTemplateRef.current !== templateKey) {
-        console.log('새로운 템플릿 로딩:', templateComponents.length, '개');
-        templateComponents.forEach((comp, index) => {
-          console.log(`addComponent ${index} 호출:`, comp);
-          addComponent(comp);
-          console.log(`addComponent ${index} 완료`);
+    const loadPageData = async () => {
+      if (!roomId || pageLoaded) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch(`${API_BASE_URL}/users/pages/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
-        loadedTemplateRef.current = templateKey;
-        console.log('템플릿 로딩 완료');
+        
+        if (response.ok) {
+          const pageData = await response.json();
+          console.log('페이지 데이터 로딩:', pageData);
+          
+          if (pageData.content && Array.isArray(pageData.content)) {
+            // YJS가 준비되면 추가, 아니면 직접 상태 설정
+            if (collaboration.ydoc) {
+              pageData.content.forEach(comp => {
+                addComponent(comp);
+              });
+            } else {
+              setComponents(pageData.content);
+            }
+          }
+          setPageTitle(pageData.title || 'Untitled');
+          setPageLoaded(true);
+        }
+      } catch (error) {
+        console.error('페이지 데이터 로딩 실패:', error);
       }
-    } else if (templateComponents) {
-      console.log('YJS 초기화 대기 중...', { hasYdoc: !!collaboration.ydoc });
+    };
+    
+    loadPageData();
+  }, [roomId, pageLoaded]);
+  
+  // YJS가 나중에 초기화되면 데이터 동기화
+  useEffect(() => {
+    if (collaboration.ydoc && components.length > 0 && !collaboration.ydoc.getArray('components').length) {
+      components.forEach(comp => {
+        addComponent(comp);
+      });
     }
-  }, [location.state, addComponent, collaboration.ydoc]);
-
+  }, [collaboration.ydoc, components, addComponent]);
+  
   // viewport 변경 시 캔버스 높이 초기화
   useEffect(() => {
     const baseHeight = viewport === 'mobile' ? 667 : 1080;

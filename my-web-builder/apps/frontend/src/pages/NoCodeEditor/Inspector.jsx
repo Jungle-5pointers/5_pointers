@@ -1,7 +1,30 @@
 import React from 'react';
 import * as ComponentEditors from './ComponentEditors';
 
-function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
+function Inspector({ selectedComp, onUpdate, color, nickname, roomId, viewport = 'desktop' }) {
+  
+  // 🔥 responsive 업데이트 함수 추가
+  const handleUpdate = (updatedComp) => {
+    console.log('Inspector handleUpdate 호출:', updatedComp);
+    
+    // responsive 구조로 자동 변환
+    const updatedResponsive = {
+      ...updatedComp.responsive,
+      [viewport]: {
+        ...(updatedComp.responsive?.[viewport] || {}),
+        props: updatedComp.props
+      }
+    };
+    
+    const finalComp = {
+      ...updatedComp,
+      responsive: updatedResponsive
+    };
+    
+    console.log('Inspector에서 변환된 responsive 구조:', finalComp);
+    onUpdate(finalComp);
+  };
+
   // 컴포넌트 타입별 에디터 매핑
   const getComponentEditor = (componentType) => {
     switch (componentType) {
@@ -169,11 +192,8 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       }}>
         {selectedComp ? (
           <div>
-
-
             {/* 컴포넌트별 독립 에디터 렌더링 */}
             {(() => {
-
               const ComponentEditor = getComponentEditor(selectedComp.type);
               
               if (!ComponentEditor) {
@@ -195,12 +215,11 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
               return (
                 <ComponentEditor
                   selectedComp={selectedComp}
-                  onUpdate={onUpdate}
+                  onUpdate={handleUpdate} // 🔥 변환 함수 사용
+                  viewport={viewport} // 🔥 viewport 전달
                 />
               );
             })()}
-
-
           </div>
         ) : (
           <div style={{
@@ -233,8 +252,6 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
           </div>
         )}
       </div>
-
-
     </div>
   );
 }

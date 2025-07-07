@@ -9,6 +9,6 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/ui" }
+    //{ "path": "../../packages/ui" }
   ]
 } 

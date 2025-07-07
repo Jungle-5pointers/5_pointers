@@ -930,6 +930,7 @@ function NoCodeEditor() {
             color={userInfo.color}
             nickname={userInfo.name}
             roomId={roomId}
+            viewport={viewport} 
           />
         )}
       </div>

@@ -30,7 +30,7 @@ function AddSectionButton({ canvasHeight, viewport, onAddSection }) {
           if (onAddSection) {
             // 새 섹션의 시작 위치 (현재 최대 Y + 여백)
             const newSectionY = currentMaxY + 100;
-            
+
             // 부모 컴포넌트에 새 섹션 추가 요청
             onAddSection(newSectionY);
           } else {
@@ -115,7 +115,7 @@ function CanvasArea({
   // 패닝(캔버스 드래그 이동) 관련 상태
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
-  
+
   // 컴포넌트 드래그 상태 감지
   const [isComponentDragging, setIsComponentDragging] = useState(false);
 
@@ -207,14 +207,14 @@ function CanvasArea({
     if (isComponentDragging) {
       return;
     }
-    
+
     // 컨테이너의 빈 영역에서만 동작 (컴포넌트나 컴포넌트 관련 요소 위에서는 무시)
     const isClickOnComponent = e.target.closest('[data-component-id]') !== null ||
-                              e.target.closest('.canvas-component') !== null ||
-                              e.target.style.cursor === 'grab' ||
-                              e.target.style.cursor === 'grabbing' ||
-                              e.target.tagName === 'BUTTON';
-    
+      e.target.closest('.canvas-component') !== null ||
+      e.target.style.cursor === 'grab' ||
+      e.target.style.cursor === 'grabbing' ||
+      e.target.tagName === 'BUTTON';
+
     if ((e.target === containerRef.current || e.target === canvasRef.current) && !isClickOnComponent) {
       setIsPanning(true);
       setPanStart({
@@ -257,27 +257,27 @@ function CanvasArea({
       const componentElement = e.target.closest('[data-component-id]') || e.target.closest('.canvas-component');
       if (componentElement) {
         setIsComponentDragging(true);
-        
+
         // 컨테이너의 모든 스크롤 관련 속성 차단
         if (containerRef.current) {
           const container = containerRef.current;
           // 현재 스크롤 위치 저장
           const currentScrollLeft = container.scrollLeft;
           const currentScrollTop = container.scrollTop;
-          
+
           // 스크롤 차단
           container.style.overflow = 'hidden';
           container.style.pointerEvents = 'none';
-          
+
           // 스크롤 위치 고정
           const preventScroll = () => {
             container.scrollLeft = currentScrollLeft;
             container.scrollTop = currentScrollTop;
           };
-          
+
           // 스크롤 이벤트 리스너 추가
           container.addEventListener('scroll', preventScroll);
-          
+
           // cleanup 함수를 위해 저장
           componentElement._preventScroll = preventScroll;
           componentElement._currentScrollLeft = currentScrollLeft;
@@ -288,13 +288,13 @@ function CanvasArea({
 
     const handleMouseUp = () => {
       setIsComponentDragging(false);
-      
+
       // 컨테이너의 스크롤을 다시 활성화
       if (containerRef.current) {
         const container = containerRef.current;
         container.style.overflow = 'auto';
         container.style.pointerEvents = 'auto';
-        
+
         // 모든 컴포넌트에서 스크롤 이벤트 리스너 제거
         const allComponents = document.querySelectorAll('[data-component-id]');
         allComponents.forEach(comp => {
@@ -321,6 +321,11 @@ function CanvasArea({
   // 키보드 이벤트
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // 🔥 텍스트 입력 중이면 키보드 이벤트 무시
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return; // 텍스트 입력 중에는 CanvasArea에서 처리하지 않음
+      }
+
       if (e.code === 'Space') {
         e.preventDefault();
         document.body.style.cursor = 'grab';
@@ -330,12 +335,12 @@ function CanvasArea({
         e.preventDefault();
         setShowGrid(prev => !prev);
       }
-      
+
       // 화살표 키로 캔버스 스크롤
       if (containerRef.current && !e.ctrlKey && !e.metaKey) {
         const scrollAmount = 50;
         let scrolled = false;
-        
+
         switch (e.code) {
           case 'ArrowUp':
             e.preventDefault();
@@ -362,6 +367,11 @@ function CanvasArea({
     };
 
     const handleKeyUp = (e) => {
+      // 🔥 텍스트 입력 중이면 키보드 이벤트 무시
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
       if (e.code === 'Space') {
         document.body.style.cursor = 'default';
       }
@@ -398,7 +408,7 @@ function CanvasArea({
       if (containerRef.current && canvasRef.current) {
         const container = containerRef.current;
         const canvas = canvasRef.current;
-        
+
         // 중앙으로 스크롤 (부드럽게)
         container.scrollTo({
           left: Math.max(0, (canvas.scrollWidth - container.clientWidth) / 2),
@@ -410,7 +420,7 @@ function CanvasArea({
 
     // 약간의 딜레이를 두고 스크롤 (DOM이 완전히 렌더링된 후)
     const timeoutId = setTimeout(scrollToCenter, 300);
-    
+
     return () => clearTimeout(timeoutId);
   }, [viewport]); // viewport가 변경될 때마다 재실행
 
@@ -432,14 +442,14 @@ function CanvasArea({
   const getCanvasStyles = () => {
     // canvasHeight prop을 사용하여 동적 높이 설정 (더미 컴포넌트 불필요)
     const effectiveHeight = canvasHeight || (viewport === 'mobile' ? 667 : 1080);
-    
+
     return {
       position: 'relative',
       width: viewport === 'mobile' ? 375 : 1920,
       height: effectiveHeight,
-      background: showGrid ? 
+      background: showGrid ?
         `linear-gradient(to right, #e1e5e9 1px, transparent 1px),
-         linear-gradient(to bottom, #e1e5e9 1px, transparent 1px)` : 
+         linear-gradient(to bottom, #e1e5e9 1px, transparent 1px)` :
         '#fff',
       backgroundSize: showGrid ? `${GRID_SIZE}px ${GRID_SIZE}px` : 'auto',
       backgroundPosition: showGrid ? '0 0' : 'initial',
@@ -457,10 +467,10 @@ function CanvasArea({
   // 확장된 캔버스의 실제 크기 계산 (섹션 추가 버튼으로만 확장)
   const getActualCanvasSize = () => {
     const baseCanvasWidth = viewport === 'mobile' ? 375 : 1920;
-    
+
     // canvasHeight prop을 사용하여 캔버스 높이 계산 (더미 컴포넌트 불필요)
     const effectiveHeight = canvasHeight || (viewport === 'mobile' ? 667 : 1080);
-    
+
     return { width: baseCanvasWidth, height: effectiveHeight };
   };
 
@@ -469,7 +479,7 @@ function CanvasArea({
   const leftPadding = isLibraryOpen ? 280 : 40; // 라이브러리 열림/닫힘에 따라
   const containerWidth = actualCanvasSize.width + (viewport === 'mobile' ? 40 : leftPadding + 60); // 모바일: 40px, 데스크톱: 동적
   const containerHeight = actualCanvasSize.height + 400; // 상하 패딩과 여유 공간 포함
-  
+
   // 디버깅: 캔버스 크기 정보 콘솔 출력
   // console.log('Canvas Size Debug:', {
   //   canvasHeight,
@@ -524,8 +534,8 @@ function CanvasArea({
           justifyContent: 'flex-start', // 좌측 정렬로 변경
           alignItems: 'flex-start',
           // 뷰포트별 패딩 조정 (좌측은 컴포넌트 라이브러리 상태에 따라 동적 조정)
-          padding: viewport === 'mobile' 
-            ? '20px' 
+          padding: viewport === 'mobile'
+            ? '20px'
             : `40px 60px 200px ${isLibraryOpen ? '280px' : '40px'}`, // 라이브러리 열림: 280px, 닫힘: 40px
           boxSizing: 'border-box'
         }}
@@ -618,20 +628,20 @@ function CanvasArea({
                 height: '100%',
                 background:
                   line.type === 'center' ? '#9C27B0' :
-                  line.type === 'align' ? '#FF4081' :
-                  line.type === 'spacing' ? '#00E676' :
-                  '#FFB300',
+                    line.type === 'align' ? '#FF4081' :
+                      line.type === 'spacing' ? '#00E676' :
+                        '#FFB300',
                 zIndex: 1000,
                 pointerEvents: 'none',
                 boxShadow: line.type === 'center' ? '0 0 12px rgba(156, 39, 176, 0.8)' :
-                          line.type === 'align' ? '0 0 8px rgba(255, 64, 129, 0.6)' :
-                          line.type === 'spacing' ? '0 0 8px rgba(0, 230, 118, 0.6)' :
-                          '0 0 6px rgba(255, 179, 0, 0.5)',
+                  line.type === 'align' ? '0 0 8px rgba(255, 64, 129, 0.6)' :
+                    line.type === 'spacing' ? '0 0 8px rgba(0, 230, 118, 0.6)' :
+                      '0 0 6px rgba(255, 179, 0, 0.5)',
                 opacity: line.type === 'center' ? 1 : 0.9
               }}
             />
           ))}
-          
+
           {snapLines.horizontal.map((line, index) => (
             <div
               key={`h-${index}`}
@@ -643,15 +653,15 @@ function CanvasArea({
                 height: 2,
                 background:
                   line.type === 'center' ? '#9C27B0' :
-                  line.type === 'align' ? '#FF4081' :
-                  line.type === 'spacing' ? '#00E676' :
-                  '#FFB300',
+                    line.type === 'align' ? '#FF4081' :
+                      line.type === 'spacing' ? '#00E676' :
+                        '#FFB300',
                 zIndex: 1000,
                 pointerEvents: 'none',
                 boxShadow: line.type === 'center' ? '0 0 12px rgba(156, 39, 176, 0.8)' :
-                          line.type === 'align' ? '0 0 8px rgba(255, 64, 129, 0.6)' :
-                          line.type === 'spacing' ? '0 0 8px rgba(0, 230, 118, 0.6)' :
-                          '0 0 6px rgba(255, 179, 0, 0.5)',
+                  line.type === 'align' ? '0 0 8px rgba(255, 64, 129, 0.6)' :
+                    line.type === 'spacing' ? '0 0 8px rgba(0, 230, 118, 0.6)' :
+                      '0 0 6px rgba(255, 179, 0, 0.5)',
                 opacity: line.type === 'center' ? 1 : 0.9
               }}
             />
@@ -710,22 +720,22 @@ function CanvasArea({
           )}
 
           {/* 섹션 추가 버튼 - 캔버스 내부 하단에 위치 */}
-          <AddSectionButton 
+          <AddSectionButton
             canvasHeight={canvasHeight}
             viewport={viewport}
             onAddSection={onAddSection}
           />
 
           {/* 협업 기능: 라이브 커서 */}
-          <LiveCursors 
+          <LiveCursors
             cursors={otherCursors}
             zoom={localZoom}
             viewport={viewport}
           />
 
           {/* 협업 기능: 다른 사용자 선택 영역 */}
-          <CollaborativeSelections 
-            selections={otherSelections} 
+          <CollaborativeSelections
+            selections={otherSelections}
             components={components}
             zoom={localZoom}
             viewport={viewport}

@@ -7,6 +7,9 @@ import * as express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // 글로벌 prefix 설정
+  app.setGlobalPrefix('api');
+
   // CORS 허용 설정
   app.enableCors({
     origin: true,

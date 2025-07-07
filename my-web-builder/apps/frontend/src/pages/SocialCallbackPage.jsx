@@ -1,19 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 function SocialCallbackPage({ onLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
+    const error = url.searchParams.get('error');
     const isGoogle = url.pathname.includes('google');
     const isKakao = url.pathname.includes('kakao');
     const provider = isGoogle ? 'google' : isKakao ? 'kakao' : undefined;
 
-    console.log('SocialCallbackPage - provider:', provider, 'code:', code);
+    console.log('SocialCallbackPage - provider:', provider, 'code:', code, 'error:', error);
+
+    // OAuth 오류 처리
+    if (error) {
+      console.error('OAuth 오류:', error);
+      setError(`소셜 로그인 중 오류가 발생했습니다: ${error}`);
+      setIsLoading(false);
+      return;
+    }
 
     if (code && provider) {
       fetch(`${API_BASE_URL}/auth/login/social`, {
@@ -21,14 +32,17 @@ function SocialCallbackPage({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, authorizationCode: code }),
       })
-        .then(res => res.json())
+        .then(async res => {
+          const data = await res.json();
+          
+          if (!res.ok) {
+            throw new Error(data.message || `HTTP ${res.status}: ${res.statusText}`);
+          }
+          
+          return data;
+        })
         .then(data => {
           console.log('SocialCallbackPage - 백엔드 응답:', data);
-          console.log('SocialCallbackPage - 응답의 모든 키:', Object.keys(data));
-          console.log('SocialCallbackPage - data.user:', data.user);
-          console.log('SocialCallbackPage - data.nickname:', data.nickname);
-          console.log('SocialCallbackPage - data.name:', data.name);
-          console.log('SocialCallbackPage - 전체 응답 구조:', JSON.stringify(data, null, 2));
           
           window.history.replaceState({}, document.title, url.pathname);
           if (data.access_token) {
@@ -75,20 +89,40 @@ function SocialCallbackPage({ onLogin }) {
               navigate('/dashboard');
             }
           } else {
-            alert(data.message || '소셜 로그인 실패');
-            navigate('/login');
+            throw new Error(data.message || '소셜 로그인 실패');
           }
         })
         .catch(error => {
           console.error('SocialCallbackPage - 에러:', error);
           window.history.replaceState({}, document.title, url.pathname);
-          alert('소셜 로그인 에러');
-          navigate('/login');
+          setError(error.message || '소셜 로그인 중 오류가 발생했습니다.');
+          setIsLoading(false);
         });
     } else {
-      navigate('/');
+      setError('인증 코드를 찾을 수 없습니다.');
+      setIsLoading(false);
     }
-  }, []);
+  }, [navigate, onLogin]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-red-200/30 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold text-red-600 mb-4">로그인 실패</h2>
+            <p className="text-slate-600 mb-6">{error}</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              로그인 페이지로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center">

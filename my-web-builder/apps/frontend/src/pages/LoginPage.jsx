@@ -14,11 +14,43 @@ function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
   // 소셜 로그인 리다이렉트 URL
   const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${getRedirectUrl('google')}&response_type=code&scope=openid%20email%20profile`;
   const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${getRedirectUrl('kakao')}&response_type=code`;
+
+  // 이메일 유효성 검사
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('이메일을 입력해주세요.');
+      return false;
+    } else if (!emailRegex.test(email)) {
+      setEmailError('올바른 이메일 형식을 입력해주세요.');
+      return false;
+    } else {
+      setEmailError('');
+      return true;
+    }
+  };
+
+  // 비밀번호 유효성 검사
+  const validatePassword = (password) => {
+    if (!password) {
+      setPasswordError('비밀번호를 입력해주세요.');
+      return false;
+    } else if (password.length < 6) {
+      setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
+      return false;
+    } else {
+      setPasswordError('');
+      return true;
+    }
+  };
 
   // 소셜 로그인은 SocialCallbackPage에서 처리됨
 
@@ -26,13 +58,26 @@ function LoginPage({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg('');
+    
+    // 유효성 검사
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+    
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login/local`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      
       const data = await res.json();
+      
       if (res.ok && data.access_token) {
         localStorage.setItem('token', data.access_token);
         onLogin({ nickname: email.split('@')[0] });
@@ -43,10 +88,24 @@ function LoginPage({ onLogin }) {
           navigate('/dashboard');
         }
       } else {
-        setMsg(data.message || '로그인 실패');
+        // 서버에서 보낸 오류 메시지가 있으면 사용, 없으면 기본 메시지
+        if (data.message) {
+          setMsg(data.message);
+        } else if (res.status === 401) {
+          setMsg('이메일 또는 비밀번호가 올바르지 않습니다.');
+        } else if (res.status === 400) {
+          setMsg('입력 정보를 확인해주세요.');
+        } else if (res.status === 404) {
+          setMsg('존재하지 않는 계정입니다.');
+        } else {
+          setMsg('로그인에 실패했습니다. 다시 시도해주세요.');
+        }
       }
     } catch (err) {
-      setMsg('로그인 에러');
+      console.error('로그인 오류:', err);
+      setMsg('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -74,10 +133,20 @@ function LoginPage({ onLogin }) {
               type="email"
               placeholder="이메일"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) validateEmail(e.target.value);
+              }}
+              onBlur={(e) => validateEmail(e.target.value)}
+              className={`w-full px-5 py-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium ${
+                emailError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+              }`}
               required
+              disabled={isLoading}
             />
+            {emailError && (
+              <p className="mt-1 text-red-500 text-sm">{emailError}</p>
+            )}
           </div>
 
           <div>
@@ -85,17 +154,37 @@ function LoginPage({ onLogin }) {
               type="password"
               placeholder="비밀번호"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) validatePassword(e.target.value);
+              }}
+              onBlur={(e) => validatePassword(e.target.value)}
+              className={`w-full px-5 py-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium ${
+                passwordError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+              }`}
               required
+              disabled={isLoading}
             />
+            {passwordError && (
+              <p className="mt-1 text-red-500 text-sm">{passwordError}</p>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0 mt-6"
+            disabled={isLoading}
+            className={`w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0 mt-6 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            로그인하기
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                로그인 중...
+              </div>
+            ) : (
+              '로그인하기'
+            )}
           </button>
         </form>
 
@@ -132,9 +221,12 @@ function LoginPage({ onLogin }) {
 
         {msg && (
           <div className="mt-6 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm text-center font-medium">
-              {msg}
-            </p>
+            <div className="flex items-center justify-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              <p className="text-red-600 text-sm text-center font-medium">
+                {msg}
+              </p>
+            </div>
           </div>
         )}
 

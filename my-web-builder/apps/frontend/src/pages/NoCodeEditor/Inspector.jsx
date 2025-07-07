@@ -11,12 +11,12 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
         return ComponentEditors.TextComponentEditor;
       case 'link':
         return ComponentEditors.LinkEditor;
-      case 'map':
-        return ComponentEditors.MapEditor;
       case 'attend':
         return ComponentEditors.AttendEditor;
       case 'image':
         return ComponentEditors.ImageEditor;
+      case 'map':
+        return ComponentEditors.MapEditor;
       case 'dday':
         return ComponentEditors.DdayEditor;
       case 'weddingContact':
@@ -39,8 +39,6 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
         return ComponentEditors.MusicEditor;
       case 'kakaotalkShare':
         return ComponentEditors.KakaoTalkShareEditor;
-      case 'page':
-        return ComponentEditors.PageEditor;
       default:
         console.warn(`Unknown component type: ${componentType}`);
         return null;
@@ -66,8 +64,7 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       calendar: '🗓️',
       weddingInvite: '💌',
       musicPlayer: '🎵',
-      kakaotalkShare: '💛',
-      page: '📄'
+      kakaotalkShare: '💛'
     };
     return icons[type] || '📦';
   };
@@ -91,8 +88,7 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       mapInfo: 'Map Info',
       weddingInvite: 'Wedding Invite',
       musicPlayer: 'Music Player',
-      kakaotalkShare: 'KakaoTalk Share',
-      page: 'Page'
+      kakaotalkShare: 'KakaoTalk Share'
     };
     return labels[type] || 'Component';
   };

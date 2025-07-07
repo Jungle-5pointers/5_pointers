@@ -7,11 +7,73 @@ function SignupPage({ onLogin }) {
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [nicknameError, setNicknameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+
+  // 이메일 유효성 검사
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('이메일을 입력해주세요.');
+      return false;
+    } else if (!emailRegex.test(email)) {
+      setEmailError('올바른 이메일 형식을 입력해주세요.');
+      return false;
+    } else {
+      setEmailError('');
+      return true;
+    }
+  };
+
+  // 닉네임 유효성 검사
+  const validateNickname = (nickname) => {
+    if (!nickname) {
+      setNicknameError('닉네임을 입력해주세요.');
+      return false;
+    } else if (nickname.length < 2) {
+      setNicknameError('닉네임은 최소 2자 이상이어야 합니다.');
+      return false;
+    } else if (nickname.length > 20) {
+      setNicknameError('닉네임은 최대 20자까지 가능합니다.');
+      return false;
+    } else {
+      setNicknameError('');
+      return true;
+    }
+  };
+
+  // 비밀번호 유효성 검사
+  const validatePassword = (password) => {
+    if (!password) {
+      setPasswordError('비밀번호를 입력해주세요.');
+      return false;
+    } else if (password.length < 6) {
+      setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
+      return false;
+    } else {
+      setPasswordError('');
+      return true;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg('');
+    
+    // 유효성 검사
+    const isEmailValid = validateEmail(email);
+    const isNicknameValid = validateNickname(nickname);
+    const isPasswordValid = validatePassword(password);
+    
+    if (!isEmailValid || !isNicknameValid || !isPasswordValid) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
     if (email && nickname && password) {
       try {
         const res = await fetch(`${API_BASE_URL}/auth/signup/local`, {
@@ -20,6 +82,7 @@ function SignupPage({ onLogin }) {
           body: JSON.stringify({ email, nickname, password }),
         });
         const data = await res.json();
+        
         if (res.ok) {
           // 회원가입 성공 후 자동 로그인
           try {
@@ -55,13 +118,26 @@ function SignupPage({ onLogin }) {
             navigate('/dashboard');
           }
         } else {
-          setMsg(data.message || '회원가입 실패');
+          // 서버에서 보낸 오류 메시지가 있으면 사용, 없으면 기본 메시지
+          if (data.message) {
+            setMsg(data.message);
+          } else if (res.status === 400) {
+            setMsg('입력 정보를 확인해주세요.');
+          } else if (res.status === 409) {
+            setMsg('이미 존재하는 이메일입니다.');
+          } else {
+            setMsg('회원가입에 실패했습니다. 다시 시도해주세요.');
+          }
         }
       } catch (err) {
-        setMsg('회원가입 에러');
+        console.error('회원가입 오류:', err);
+        setMsg('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+      } finally {
+        setIsLoading(false);
       }
     } else {
       setMsg('모든 항목을 입력하세요.');
+      setIsLoading(false);
     }
   };
 
@@ -84,10 +160,20 @@ function SignupPage({ onLogin }) {
               type="email"
               placeholder="이메일"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium"
+              onChange={e => {
+                setEmail(e.target.value);
+                if (emailError) validateEmail(e.target.value);
+              }}
+              onBlur={(e) => validateEmail(e.target.value)}
+              className={`w-full px-5 py-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium ${
+                emailError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+              }`}
               required
+              disabled={isLoading}
             />
+            {emailError && (
+              <p className="mt-1 text-red-500 text-sm">{emailError}</p>
+            )}
           </div>
           
           <div>
@@ -95,10 +181,20 @@ function SignupPage({ onLogin }) {
               type="text"
               placeholder="닉네임"
               value={nickname}
-              onChange={e => setNickname(e.target.value)}
-              className="w-full px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium"
+              onChange={e => {
+                setNickname(e.target.value);
+                if (nicknameError) validateNickname(e.target.value);
+              }}
+              onBlur={(e) => validateNickname(e.target.value)}
+              className={`w-full px-5 py-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium ${
+                nicknameError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+              }`}
               required
+              disabled={isLoading}
             />
+            {nicknameError && (
+              <p className="mt-1 text-red-500 text-sm">{nicknameError}</p>
+            )}
           </div>
           
           <div>
@@ -106,23 +202,46 @@ function SignupPage({ onLogin }) {
               type="password"
               placeholder="비밀번호"
               value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-5 py-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium"
+              onChange={e => {
+                setPassword(e.target.value);
+                if (passwordError) validatePassword(e.target.value);
+              }}
+              onBlur={(e) => validatePassword(e.target.value)}
+              className={`w-full px-5 py-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 bg-white/80 backdrop-blur-sm placeholder-slate-400 font-medium ${
+                passwordError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+              }`}
               required
+              disabled={isLoading}
             />
+            {passwordError && (
+              <p className="mt-1 text-red-500 text-sm">{passwordError}</p>
+            )}
           </div>
           
           <button 
-            type="submit" 
-            className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0 mt-6"
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0 mt-6 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            가입하기
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                가입 중...
+              </div>
+            ) : (
+              '가입하기'
+            )}
           </button>
         </form>
         
         {msg && (
           <div className="mt-6 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm text-center font-medium">{msg}</p>
+            <div className="flex items-center justify-center">
+              <span className="text-red-500 mr-2">⚠️</span>
+              <p className="text-red-600 text-sm text-center font-medium">{msg}</p>
+            </div>
           </div>
         )}
         

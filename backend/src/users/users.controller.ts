@@ -100,11 +100,11 @@ export class UsersController {
             month,
             day,
           );
-
+          
           // 디렉토리 생성 (동기적으로)
 
           fs.mkdirSync(uploadPath, { recursive: true });
-
+          
           cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
@@ -137,7 +137,7 @@ export class UsersController {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-
+    
     const imageUrl = `/uploads/images/${year}/${month}/${day}/${file.filename}`;
 
     return {

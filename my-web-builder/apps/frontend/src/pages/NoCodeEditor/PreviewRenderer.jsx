@@ -15,6 +15,7 @@ import CalendarRenderer from './ComponentRenderers/CalendarRenderer';
 import BankAccountRenderer from './ComponentRenderers/BankAccountRenderer';
 import CommentRenderer from './ComponentRenderers/CommentRenderer';
 import { getFinalStyles, VIEWPORT_CONFIGS } from './utils/editorUtils';
+import { ComponentRenderers } from './ComponentRenderers';
 
 // 컴포넌트 definitions import
 import buttonDef from '../components/definitions/button.json';
@@ -53,205 +54,74 @@ const componentDefinitions = {
 };
 
 /**
- * PreviewRenderer - iframe 내부에서 실제 페이지를 렌더링하는 순수 컴포넌트
- *
- * 이 컴포넌트는:
- * 1. 편집 기능이 완전히 제거된 순수한 렌더링만 담당
- * 2. 실제 배포 환경과 동일한 모습을 보여줌
- * 3. 드래그, 선택, 편집 등의 에디터 기능은 포함하지 않음
- * 4. 실제 화면 크기에 따른 반응형 렌더링 지원
+ * 미리보기/배포용 렌더러
+ * 두 가지 렌더링 모드 지원:
+ * 1. 절대 좌표 모드 (데스크탑 미리보기)
+ * 2. Flexbox 모드 (모바일/태블릿 미리보기)
  */
-const PreviewRenderer = ({ pageContent, forcedViewport = null }) => {
-  // 현재 뷰포트 (강제 뷰포트가 있으면 그것 사용, 아니면 자동 감지)
-  const [autoViewport, setAutoViewport] = useState('desktop');
-  const currentViewport = forcedViewport || autoViewport;
+const PreviewRenderer = ({
+  pageContent = [],
+  forcedViewport = 'desktop',
+  designMode = 'desktop',
+}) => {
+  const currentViewport = forcedViewport;
 
-  // 화면 크기 변경 감지하여 뷰포트 결정 (강제 뷰포트가 없을 때만)
-  useEffect(() => {
-    if (forcedViewport) return; // 강제 뷰포트가 있으면 자동 감지 비활성화
+  // 1. 렌더링 모드 결정
+  const isAbsoluteLayout =
+    designMode === 'desktop' && currentViewport === 'desktop';
 
-    const detectViewport = () => {
-      const width = window.innerWidth;
-
-      // VIEWPORT_CONFIGS를 기반으로 뷰포트 판단
-      if (width <= VIEWPORT_CONFIGS.mobile.width) {
-        setAutoViewport('mobile');
-      } else if (width <= VIEWPORT_CONFIGS.tablet.width) {
-        setAutoViewport('tablet');
-      } else {
-        setAutoViewport('desktop');
-      }
-    };
-
-    // 초기 감지
-    detectViewport();
-
-    // 리사이즈 이벤트 리스너
-    window.addEventListener('resize', detectViewport);
-
-    return () => {
-      window.removeEventListener('resize', detectViewport);
-    };
-  }, [forcedViewport]);
-
-  // 컴포넌트의 props와 defaultProps를 병합하는 함수
-  const getMergedProps = (comp) => {
-    const definition = componentDefinitions[comp.type];
-    const defaultProps = definition?.defaultProps || {};
-    // 현재 뷰포트에 맞는 스타일 적용
-    const finalStyles = getFinalStyles(comp, currentViewport);
-    return { ...defaultProps, ...(finalStyles.props || comp.props || {}) };
+  // 2. 컴포넌트 정렬 (Flexbox 모드일 때만 의미 있음)
+  const getSortedComponents = () => {
+    if (isAbsoluteLayout) {
+      return pageContent; // 절대 좌표 모드에서는 정렬 불필요
+    }
+    // 'desktop' 디자인을 다른 뷰포트로 볼 때만 정렬
+    if (designMode === 'desktop') {
+      return [...pageContent].sort((a, b) => {
+        const yDiff = a.y - b.y;
+        return Math.abs(yDiff) < 20 ? a.x - b.x : yDiff;
+      });
+    }
+    return pageContent; // 'mobile' 디자인은 저장된 순서 그대로
   };
 
-  // 컴포넌트 타입별 렌더링 함수
-  const renderComponent = (comp) => {
-    const mergedProps = getMergedProps(comp);
-    // 현재 뷰포트에 맞는 최종 스타일 계산
+  // 3. 개별 컴포넌트 렌더링 함수
+  const renderSingleComponent = (comp) => {
+    const Renderer = ComponentRenderers[comp.type];
+    if (!Renderer) return null;
+
+    // 현재 뷰포트에 맞는 스타일 적용
     const finalStyles = getFinalStyles(comp, currentViewport);
 
-    const baseStyle = {
-      position: 'absolute',
-      left: finalStyles.x,
-      top: finalStyles.y,
-      width: finalStyles.width || 'auto',
-      height: finalStyles.height || 'auto',
-      // 편집 관련 스타일 제거 (border, cursor 등)
-    };
-
-    // 병합된 props로 새로운 comp 객체 생성
-    const compWithMergedProps = {
-      ...comp,
-      props: mergedProps,
-    };
-
-    const componentContent = (() => {
-      switch (comp.type) {
-        case 'button':
-          return <ButtonRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'text':
-          return <TextRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'link':
-          return <LinkRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'attend':
-          return <AttendRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'map':
-          return <MapView {...mergedProps} isEditor={false} />;
-        case 'dday':
-          return <DdayRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'weddingContact':
-          return (
-            <WeddingContactRenderer
-              comp={compWithMergedProps}
-              isEditor={false}
-            />
-          );
-        case 'weddingInvite':
-          return (
-            <WeddingInviteRenderer
-              comp={compWithMergedProps}
-              isEditor={false}
-            />
-          );
-        case 'image':
-          return <ImageRenderer comp={compWithMergedProps} isEditor={false} />;
-        case 'gridGallery':
-          return (
-            <GridGalleryRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        case 'slideGallery':
-          return (
-            <SlideGalleryRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        case 'mapInfo':
-          return (
-            <MapInfoRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        case 'calendar':
-          return (
-            <CalendarRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        case 'comment':
-          return (
-            <CommentRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        case 'bankAccount':
-          return (
-            <BankAccountRenderer comp={compWithMergedProps} isEditor={false} />
-          );
-        default:
-          return (
-            <div
-              style={{
-                padding: '8px 12px',
-                background: '#f8f9fa',
-                border: '1px solid #e9ecef',
-                borderRadius: 4,
-                fontSize: 14,
-                color: '#6c757d',
-              }}
-            >
-              {mergedProps.text || comp.type}
-            </div>
-          );
-      }
-    })();
+    // isAbsoluteLayout 값에 따라 스타일 결정
+    const style = isAbsoluteLayout
+      ? {
+          position: 'absolute',
+          left: comp.x,
+          top: comp.y,
+          width: comp.width,
+          height: comp.height,
+          ...finalStyles.style,
+        }
+      : {
+          width: '100%',
+          maxWidth: `${comp.width}px`,
+          margin: '0 auto',
+          ...finalStyles.style,
+        };
 
     return (
-      <div
-        key={comp.id}
-        data-component-type={comp.type}
-        data-component-id={comp.id}
-        // 미리보기에서는 실제 동작 허용 (링크, 버튼 등)
-        style={{
-          ...baseStyle,
-          pointerEvents: 'auto', // 실제 동작 활성화 (링크, 버튼 클릭 등)
-          userSelect: 'text', // 텍스트 선택 가능
-        }}
-      >
-        {componentContent}
+      <div key={comp.id} style={style}>
+        <Renderer
+          comp={{ ...comp, props: finalStyles.props }}
+          isEditor={false}
+        />
       </div>
     );
   };
 
-  // 확장된 캔버스 크기 계산 (현재 뷰포트 고려)
-  const calculateCanvasSize = () => {
-    if (
-      !pageContent ||
-      !Array.isArray(pageContent) ||
-      pageContent.length === 0
-    ) {
-      // 현재 뷰포트에 맞는 기본 캔버스 크기
-      const viewportConfig = VIEWPORT_CONFIGS[currentViewport];
-      return { width: viewportConfig.width, height: viewportConfig.height };
-    }
-
-    // 현재 뷰포트의 기본 크기
-    const viewportConfig = VIEWPORT_CONFIGS[currentViewport];
-    let maxX = viewportConfig.width;
-    let maxY = viewportConfig.height;
-
-    pageContent.forEach((comp) => {
-      if (comp.id && comp.id.startsWith('canvas-extender-')) {
-        // 확장 컴포넌트는 캔버스 크기 계산에 포함
-        const finalStyles = getFinalStyles(comp, currentViewport);
-        maxY = Math.max(maxY, finalStyles.y + (finalStyles.height || 0) + 100);
-      } else {
-        // 일반 컴포넌트의 경우 현재 뷰포트의 위치 + 크기로 계산
-        const finalStyles = getFinalStyles(comp, currentViewport);
-        maxX = Math.max(maxX, finalStyles.x + (finalStyles.width || 200));
-        maxY = Math.max(
-          maxY,
-          finalStyles.y + (finalStyles.height || 100) + 100
-        );
-      }
-    });
-
-    return { width: maxX, height: maxY };
-  };
-
-  const canvasSize = calculateCanvasSize();
-
-  if (!pageContent || !Array.isArray(pageContent)) {
+  // 빈 페이지 처리
+  if (!pageContent || !Array.isArray(pageContent) || pageContent.length === 0) {
     return (
       <div
         style={{
@@ -276,35 +146,70 @@ const PreviewRenderer = ({ pageContent, forcedViewport = null }) => {
     );
   }
 
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: `${canvasSize.width}px`,
-        height: `${canvasSize.height}px`,
-        background: '#ffffff',
-        margin: '0 auto',
-        minHeight: '100vh',
-        overflow: 'visible',
-      }}
-    >
-      {/* 모든 컴포넌트 렌더링 (확장 컴포넌트 제외) */}
-      {pageContent
-        .filter((comp) => !comp.id.startsWith('canvas-extender-'))
-        .map(renderComponent)}
+  const componentsToRender = getSortedComponents();
 
-      {/* 페이지 하단 여백 (필요시) */}
+  // 4. 전체 캔버스/컨테이너 렌더링 (조건부)
+  if (isAbsoluteLayout) {
+    // 캔버스 크기 계산
+    const canvasSize = calculateAbsoluteCanvasSize(pageContent);
+    return (
       <div
         style={{
-          height: 100,
-          width: '100%',
-          position: 'absolute',
-          bottom: 0,
-          pointerEvents: 'none',
+          position: 'relative',
+          width: `${canvasSize.width}px`,
+          height: `${canvasSize.height}px`,
+          margin: '0 auto',
         }}
-      />
-    </div>
-  );
+      >
+        {componentsToRender.map(renderSingleComponent)}
+      </div>
+    );
+  } else {
+    // 뷰포트별 최대 너비 설정
+    const maxWidth =
+      currentViewport === 'mobile'
+        ? '100%'
+        : currentViewport === 'tablet'
+          ? '768px'
+          : '1200px';
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          width: '100%',
+          maxWidth: maxWidth,
+          margin: '0 auto',
+          padding: '20px',
+          boxSizing: 'border-box',
+        }}
+      >
+        {componentsToRender.map(renderSingleComponent)}
+      </div>
+    );
+  }
+};
+
+// 절대 좌표 레이아웃의 전체 크기를 계산하는 헬퍼 함수
+const calculateAbsoluteCanvasSize = (components) => {
+  if (!components || components.length === 0)
+    return { width: 1920, height: 1080 };
+
+  let maxX = 1920;
+  let maxY = 1080;
+
+  components.forEach((comp) => {
+    maxX = Math.max(maxX, comp.x + comp.width);
+    maxY = Math.max(maxY, comp.y + comp.height);
+  });
+
+  return {
+    width: maxX,
+    height: maxY + 200, // 하단 여백 추가
+  };
 };
 
 export default PreviewRenderer;

@@ -3,10 +3,11 @@ import { createRoot } from 'react-dom/client';
 import PreviewRenderer from './PreviewRenderer';
 import { VIEWPORT_CONFIGS } from './utils/editorUtils';
 
-const PreviewModal = ({ isOpen, onClose, pageContent }) => {
+const PreviewModal = ({ isOpen, onClose, pageContent, designMode }) => {
   const [viewMode, setViewMode] = useState('desktop'); // 'desktop' | 'mobile'
   const iframeRef = useRef(null);
   const rootRef = useRef(null);
+  const modalRef = useRef(null);
 
   // 뷰 모드별 크기 설정
   const getViewportSize = (mode) => {
@@ -83,6 +84,7 @@ const PreviewModal = ({ isOpen, onClose, pageContent }) => {
             <PreviewRenderer
               pageContent={pageContent}
               forcedViewport={viewMode}
+              designMode={designMode}
             />
           );
         }
@@ -102,7 +104,7 @@ const PreviewModal = ({ isOpen, onClose, pageContent }) => {
     return () => {
       iframe.removeEventListener('load', handleIframeLoad);
     };
-  }, [isOpen, pageContent, viewMode]);
+  }, [isOpen, pageContent, viewMode, designMode]);
 
   // 모달이 닫힐 때 정리
   useEffect(() => {
@@ -131,23 +133,35 @@ const PreviewModal = ({ isOpen, onClose, pageContent }) => {
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const viewport = getViewportSize(viewMode);
 
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+  };
+
   return (
     <div
+      ref={modalRef}
+      tabIndex={-1}
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        zIndex: 9999,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         flexDirection: 'column',
-        backdropFilter: 'blur(4px)',
+        alignItems: 'center',
+        zIndex: 9999,
       }}
       onClick={(e) => {
         // 배경 클릭 시 모달 닫기
@@ -159,105 +173,67 @@ const PreviewModal = ({ isOpen, onClose, pageContent }) => {
       {/* 상단 컨트롤 바 */}
       <div
         style={{
-          height: 60,
-          background: 'rgba(255, 255, 255, 0.95)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          padding: '16px',
+          background: '#fff',
+          borderBottom: '1px solid #e9ecef',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px',
-          backdropFilter: 'blur(10px)',
+          alignItems: 'center',
         }}
       >
-        {/* 왼쪽: 제목 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => handleViewModeChange('desktop')}
             style={{
-              fontSize: 18,
-              fontWeight: 600,
-              color: '#1d2129',
+              padding: '8px 16px',
+              background: viewMode === 'desktop' ? '#3B4EFF' : '#fff',
+              color: viewMode === 'desktop' ? '#fff' : '#000',
+              border: '1px solid #e9ecef',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
-            🔍 페이지 미리보기
-          </div>
-          <div
+            데스크탑
+          </button>
+          <button
+            onClick={() => handleViewModeChange('tablet')}
             style={{
-              fontSize: 14,
-              color: '#65676b',
-              background: '#f0f2f5',
-              padding: '4px 8px',
-              borderRadius: 4,
+              padding: '8px 16px',
+              background: viewMode === 'tablet' ? '#3B4EFF' : '#fff',
+              color: viewMode === 'tablet' ? '#fff' : '#000',
+              border: '1px solid #e9ecef',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
-            {pageContent?.length || 0}개 컴포넌트
-          </div>
+            태블릿
+          </button>
+          <button
+            onClick={() => handleViewModeChange('mobile')}
+            style={{
+              padding: '8px 16px',
+              background: viewMode === 'mobile' ? '#3B4EFF' : '#fff',
+              color: viewMode === 'mobile' ? '#fff' : '#000',
+              border: '1px solid #e9ecef',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            모바일
+          </button>
         </div>
-
-        {/* 중앙: 뷰 모드 전환 버튼 */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {Object.entries(VIEWPORT_CONFIGS).map(([mode, config]) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              style={{
-                padding: '8px 16px',
-                border: 'none',
-                borderRadius: 8,
-                background: viewMode === mode ? '#3B4EFF' : '#f0f2f5',
-                color: viewMode === mode ? '#fff' : '#65676b',
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: viewMode === mode ? 'scale(1.05)' : 'scale(1)',
-              }}
-              onMouseEnter={(e) => {
-                if (viewMode !== mode) {
-                  e.target.style.background = '#e4e6ea';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (viewMode !== mode) {
-                  e.target.style.background = '#f0f2f5';
-                }
-              }}
-            >
-              <span>{config.icon}</span>
-              <span>{config.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* 오른쪽: 닫기 버튼 */}
         <button
           onClick={onClose}
           style={{
-            width: 40,
-            height: 40,
-            border: 'none',
-            borderRadius: 8,
-            background: '#f0f2f5',
-            color: '#65676b',
+            padding: '8px 16px',
+            background: '#fff',
+            border: '1px solid #e9ecef',
+            borderRadius: '4px',
             cursor: 'pointer',
-            fontSize: 18,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = '#e4e6ea';
-            e.target.style.color = '#1d2129';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = '#f0f2f5';
-            e.target.style.color = '#65676b';
           }}
         >
-          ✕
+          닫기
         </button>
       </div>
 
@@ -265,76 +241,31 @@ const PreviewModal = ({ isOpen, onClose, pageContent }) => {
       <div
         style={{
           flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px',
-          minHeight: 0,
+          width: '100%',
+          overflow: 'auto',
+          background: '#f8f9fa',
+          padding: '20px',
+          boxSizing: 'border-box',
         }}
       >
         <div
           style={{
-            width: viewport.width,
-            height: viewport.height,
-            maxWidth: 'calc(100vw - 80px)',
-            maxHeight: 'calc(100vh - 140px)',
-            background: '#ffffff',
-            borderRadius: viewMode !== 'desktop' ? 16 : 8,
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            overflow: 'hidden',
-            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            transform: viewMode === 'mobile' ? 'scale(1)' : 'scale(1)',
-            border: viewMode !== 'desktop' ? '8px solid #2d3748' : 'none',
-            position: 'relative',
+            width:
+              viewMode === 'mobile'
+                ? '375px'
+                : viewMode === 'tablet'
+                  ? '768px'
+                  : '100%',
+            margin: '0 auto',
+            background: '#fff',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+            transition: 'width 0.3s ease',
           }}
         >
-          {/* 디바이스 프레임 데코레이션 (모바일/태블릿) */}
-          {viewMode !== 'desktop' && (
-            <>
-              {/* 상단 노치/스피커 */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: -8,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: viewMode === 'mobile' ? 120 : 160,
-                  height: 6,
-                  background: '#1a202c',
-                  borderRadius: '0 0 8px 8px',
-                  zIndex: 10,
-                }}
-              />
-              {/* 홈 인디케이터 (모바일) */}
-              {viewMode === 'mobile' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: -6,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 80,
-                    height: 3,
-                    background: '#4a5568',
-                    borderRadius: 2,
-                    zIndex: 10,
-                  }}
-                />
-              )}
-            </>
-          )}
-
-          {/* iframe 컨테이너 */}
-          <iframe
-            ref={iframeRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              borderRadius: viewMode !== 'desktop' ? 8 : 0,
-            }}
-            title="Page Preview"
-            sandbox="allow-scripts allow-same-origin"
+          <PreviewRenderer
+            pageContent={pageContent}
+            forcedViewport={viewMode}
+            designMode={designMode}
           />
         </div>
       </div>

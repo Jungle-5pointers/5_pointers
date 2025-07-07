@@ -245,15 +245,21 @@ export class UsersService {
   // 페이지 생성 리팩토링
   async createPage(
     userId: number,
-    body: { subdomain?: string; title?: string; templateId?: string },
+    body: { subdomain?: string; title?: string; templateId?: string; content?: any[] },
   ): Promise<Pages> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new Error('User not found');
 
     let content = null;
 
+    // content가 직접 전달된 경우 (로컬 템플릿)
+    if (body.content && Array.isArray(body.content)) {
+      // 컴포넌트 ID 재발급
+      content = this.regenerateComponentIds(body.content);
+      console.log('직접 content 전달됨, 컴포넌트 개수:', content.length);
+    }
     // templateId가 있으면 템플릿에서 content 가져오기
-    if (body.templateId) {
+    else if (body.templateId) {
       const templatesRepository =
         this.pagesRepository.manager.getRepository('Templates');
       const template = await templatesRepository.findOne({
@@ -262,6 +268,7 @@ export class UsersService {
       if (template && template.content) {
         // 컴포넌트 ID 재발급
         content = this.regenerateComponentIds(template.content);
+        console.log('템플릿에서 content 가져옴, 컴포넌트 개수:', content.length);
       }
     }
 
@@ -274,7 +281,9 @@ export class UsersService {
       status: PageStatus.DRAFT,
     });
 
-    return this.pagesRepository.save(page);
+    const savedPage = await this.pagesRepository.save(page);
+    console.log('페이지 저장됨:', savedPage.id, '컨텐츠 타입:', typeof savedPage.content, '컨텐츠:', savedPage.content);
+    return savedPage;
   }
 
   // 컴포넌트 ID 재발급 함수
@@ -822,7 +831,26 @@ export class UsersService {
     if (!page) {
       throw new Error('Page not found');
     }
-    return { content: page.content || [] };
+    
+    console.log('페이지 콘텐츠 조회:', {
+      pageId: page.id,
+      title: page.title,
+      contentType: typeof page.content,
+      contentValue: page.content,
+      isArray: Array.isArray(page.content),
+      length: Array.isArray(page.content) ? page.content.length : 'not array'
+    });
+    
+    // content가 배열인 경우 그대로 반환, 아니면 빈 배열 반환
+    const content = Array.isArray(page.content) ? page.content : [];
+    
+    return { 
+      content: {
+        components: content,
+        canvasSettings: {}
+      },
+      title: page.title 
+    };
   }
 
   // 페이지 콘텐츠 저장 (Y.js 백업용)

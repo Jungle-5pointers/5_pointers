@@ -31,6 +31,102 @@ function DashboardPage({ user, onLogout }) {
     { value: 'portfolio', label: '포트폴리오' },
   ];
 
+  // 기본 웨딩 템플릿 정의
+  const defaultWeddingTemplate = {
+    id: 'elegant-wedding-2024',
+    name: 'Elegant Wedding Invitation',
+    category: 'wedding',
+    tags: ['wedding', 'invitation', 'elegant', 'romantic', 'pink', 'modern'],
+    usageCount: 0,
+    isPublic: true,
+    content: [
+      {
+        id: 'wedding-header-1',
+        type: 'weddingInvite',
+        x: 0, y: 0, width: 375, height: 400,
+        props: {
+          title: 'Wedding Invitation',
+          subtitle: '결혼합니다',
+          description: '두 사람이 하나가 되는 소중한 날',
+          groomName: '김민수',
+          brideName: '박지영',
+          date: '2024년 4월 20일',
+          time: '오후 2시 30분',
+          venue: '웨딩홀 그랜드볼룸',
+          message: '저희의 새로운 시작을 축복해 주세요',
+          backgroundColor: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fef3c7 100%)',
+          textColor: '#be185d',
+          accentColor: '#f59e0b',
+          titleFontFamily: '"Playfair Display", serif',
+          bodyFontFamily: '"Noto Sans KR", sans-serif',
+          titleFontSize: 28,
+          subtitleFontSize: 20,
+          bodyFontSize: 14
+        }
+      },
+      {
+        id: 'wedding-datetime-1',
+        type: 'dday',
+        x: 20, y: 420, width: 335, height: 100,
+        props: {
+          targetDate: '2024-04-20',
+          title: '2024년 4월 20일 토요일',
+          subtitle: '오후 2시 30분',
+          backgroundColor: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+          titleColor: '#1f2937', borderRadius: '16px'
+        }
+      },
+      {
+        id: 'wedding-venue-1',
+        type: 'mapInfo',
+        x: 20, y: 540, width: 335, height: 120,
+        props: {
+          venueName: '웨딩홀 그랜드볼룸',
+          address: '서울특별시 강남구 테헤란로 123',
+          details: '지하철 2호선 강남역 3번 출구 도보 5분\n주차 가능 (발렛파킹 서비스)',
+          backgroundColor: 'linear-gradient(135deg, #fef3c7 0%, #fdf2f8 100%)',
+          borderRadius: '16px'
+        }
+      },
+      {
+        id: 'groom-contact-1',
+        type: 'weddingContact',
+        x: 20, y: 680, width: 160, height: 120,
+        props: {
+          title: '신랑측 연락처',
+          groomName: '김민수',
+          groomPhone1: '010',
+          groomPhone2: '1234',
+          groomPhone3: '5678',
+          groomFatherName: '김철수',
+          groomFatherPhone1: '010',
+          groomFatherPhone2: '9876',
+          groomFatherPhone3: '5432',
+          backgroundColor: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+          borderRadius: '16px'
+        }
+      },
+      {
+        id: 'bride-contact-1',
+        type: 'weddingContact',
+        x: 195, y: 680, width: 160, height: 120,
+        props: {
+          title: '신부측 연락처',
+          brideName: '박지영',
+          bridePhone1: '010',
+          bridePhone2: '8765',
+          bridePhone3: '4321',
+          brideFatherName: '박영수',
+          brideFatherPhone1: '010',
+          brideFatherPhone2: '2468',
+          brideFatherPhone3: '1357',
+          backgroundColor: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)',
+          borderRadius: '16px'
+        }
+      }
+    ]
+  };
+
   // 템플릿 목록 조회
   const fetchTemplates = async (category = 'all') => {
     try {
@@ -48,10 +144,20 @@ function DashboardPage({ user, onLogout }) {
           const firstIndex = arr.findIndex(t => t.id === template.id);
           return firstIndex === index;
         });
+        
+        // 웨딩 카테고리이거나 전체 카테고리일 때 기본 웨딩 템플릿 추가
+        if ((category === 'wedding' || category === 'all') && !uniqueTemplates.find(t => t.id === defaultWeddingTemplate.id)) {
+          uniqueTemplates.unshift(defaultWeddingTemplate);
+        }
+        
         setTemplates(uniqueTemplates);
       }
     } catch (error) {
       console.error('템플릿 조회 실패:', error);
+      // API 실패 시에도 웨딩 템플릿은 표시
+      if (category === 'wedding' || category === 'all') {
+        setTemplates([defaultWeddingTemplate]);
+      }
     } finally {
       setLoading(false);
     }
@@ -100,6 +206,45 @@ function DashboardPage({ user, onLogout }) {
         return;
       }
 
+      // 로컬 웨딩 템플릿인 경우 직접 처리
+      if (templateId === 'elegant-wedding-2024') {
+        console.log('웨딩 템플릿 생성 시작:', {
+          templateId,
+          componentCount: defaultWeddingTemplate.content.length,
+          components: defaultWeddingTemplate.content
+        });
+        
+        const response = await fetch(`${API_BASE_URL}/users/pages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: 'Elegant Wedding Invitation',
+            subdomain: `wedding-${Date.now()}`,
+            content: defaultWeddingTemplate.content, // 직접 컴포넌트 배열 전달
+          }),
+        });
+
+        if (response.ok) {
+          const newPage = await response.json();
+          console.log('웨딩 템플릿 페이지 생성 성공:', {
+            pageId: newPage.id,
+            title: newPage.title,
+            contentType: typeof newPage.content,
+            contentLength: Array.isArray(newPage.content) ? newPage.content.length : 'not array',
+            content: newPage.content
+          });
+          navigate(`/editor/${newPage.id}`);
+          return;
+        } else {
+          const errorData = await response.text();
+          console.error('웨딩 템플릿 페이지 생성 실패:', response.status, errorData);
+        }
+      }
+
+      // 일반 템플릿인 경우 기존 로직 사용
       const response = await fetch(`${API_BASE_URL}/users/pages`, {
         method: 'POST',
         headers: {

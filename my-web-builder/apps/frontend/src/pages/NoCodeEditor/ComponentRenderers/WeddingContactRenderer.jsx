@@ -35,24 +35,57 @@ function PersonRow({ name, phone1, phone2, phone3, role, deceased }) {
 }
 
 function WeddingContactRenderer({ comp }) {
-  const p = comp.props;
+  const p = comp.props || {};
+  const {
+    title = "연락처",
+    backgroundColor = "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)",
+    textColor = "#1f2937",
+    borderRadius = "16px"
+  } = p;
+  
   return (
     <div style={{
       width: '100%',
       height: '100%',
-      background: '#fff',
-      border: '1px solid #ddd',
-      borderRadius: '12px',
+      background: backgroundColor,
+      border: '1px solid rgba(255,255,255,0.3)',
+      borderRadius: borderRadius,
       padding: '20px',
-      color: '#333',
-      fontFamily: 'inherit',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      color: textColor,
+      fontFamily: '"Noto Sans KR", sans-serif',
+      boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
       minWidth: '250px',
       minHeight: '200px',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* 장식 요소 */}
+      <div style={{
+        position: 'absolute',
+        top: '-10px',
+        right: '-10px',
+        width: '40px',
+        height: '40px',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)',
+        borderRadius: '50%'
+      }}></div>
+      
+      {/* 제목 */}
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '15px',
+        fontSize: '16px',
+        fontWeight: '700',
+        color: textColor,
+        position: 'relative',
+        zIndex: 1
+      }}>
+        💌 {title}
+      </div>
+      
       {/* 상단 신랑/신부 */}
       <div style={{ display: 'flex', marginBottom: 24 }}>
         {p.brideFirst ? (

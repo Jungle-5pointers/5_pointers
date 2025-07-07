@@ -76,7 +76,7 @@ export class UsersController {
   @Post('pages')
   async createPage(
     @Request() req,
-    @Body() body: { subdomain?: string; title?: string; templateId?: string },
+    @Body() body: { subdomain?: string; title?: string; templateId?: string; content?: any[] },
   ) {
     return this.usersService.createPage(req.user.id, body);
   }

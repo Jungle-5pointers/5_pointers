@@ -14,11 +14,10 @@ import bankAccount from './bank-account.json';
 import commentDef from './comment.json';
 import weddingInviteDef from './wedding-invite.json';
 import musicDef from './music.json';
-import kakaotalkShareDef from './kakaotalk-share.json';
+import slidoDef from './slido.json';
 import pageDef from "./page.json";
 
 export const ComponentList = [
-  pageDef,          // 페이지
   // 상단 우선순위 컴포넌트들
   mapDef,           // 지도
   imageDef,         // 이미지
@@ -32,10 +31,10 @@ export const ComponentList = [
   calendarDef,        // 캘린더
   bankAccount,        // 계좌 정보
   commentDef,         // 댓글
+  slidoDef,           // 실시간 의견
   weddingInviteDef,   // 안내장
   musicDef,           // 음악
   mapInfoDef,         // 지도 정보
-  kakaotalkShareDef,  // 카카오톡 
   
   // 하단 기본 컴포넌트들
   buttonDef,        // 버튼

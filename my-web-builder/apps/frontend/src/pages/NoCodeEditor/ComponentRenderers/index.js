@@ -1,41 +1,44 @@
 // ComponentRenderers 모듈들을 한 곳에서 export
-export { default as ButtonRenderer } from './ButtonRenderer.jsx';
-export { default as TextRenderer } from './TextRenderer.jsx';
-export { default as LinkRenderer } from './LinkRenderer.jsx';
-export { default as AttendRenderer } from './AttendRenderer.jsx';
-export { default as ImageRenderer } from './ImageRenderer.jsx';
-export { default as DdayRenderer } from './DdayRenderer.jsx';
-export { default as WeddingContactRenderer } from './WeddingContactRenderer.jsx';
-export { default as GridGalleryRenderer } from './GridGalleryRenderer.jsx';
-export { default as SlideGalleryRenderer } from './SlideGalleryRenderer.jsx';
-export { default as MapView } from './MapView.jsx';
-export { default as MapInfoRenderer } from './MapInfoRenderer.jsx';
-export { default as CalendarRenderer } from './CalendarRenderer.jsx';
-export { default as BankAccountRenderer } from './BankAccountRenderer.jsx';
-export { default as CommentRenderer } from './CommentRenderer.jsx';
-export { default as WeddingInviteRenderer } from './WeddingInviteRenderer.jsx';
-export { default as MusicRenderer } from './MusicRenderer.jsx';
+export { default as ButtonRenderer } from "./ButtonRenderer";
+export { default as TextRenderer } from "./TextRenderer";
+export { default as LinkRenderer } from "./LinkRenderer";
+export { default as AttendRenderer } from "./AttendRenderer";
+export { default as ImageRenderer } from "./ImageRenderer";
+export { default as DdayRenderer } from "./DdayRenderer.jsx";
+export { default as WeddingContactRenderer } from "./WeddingContactRenderer.jsx";
+export { default as GridGalleryRenderer } from "./GridGalleryRenderer";
+export { default as SlideGalleryRenderer } from "./SlideGalleryRenderer";
+export { default as MapView } from "./MapView";
+export { default as MapInfoRenderer } from './MapInfoRenderer';
+export { default as CalendarRenderer } from './CalendarRenderer';
+export { default as BankAccountRenderer } from './BankAccountRenderer';
+export { default as CommentRenderer } from './CommentRenderer';
+export { default as SlidoRenderer } from './SlidoRenderer';
+export { default as WeddingInviteRenderer } from './WeddingInviteRenderer'; 
+export { default as MusicRenderer } from './MusicRenderer';
 export { default as PageRenderer } from "./PageRenderer.jsx";
 
+
 // 개별 import (getRendererByType 함수에서 사용)
-import ButtonRenderer from './ButtonRenderer.jsx';
-import TextRenderer from './TextRenderer.jsx';
-import LinkRenderer from './LinkRenderer.jsx';
-import AttendRenderer from './AttendRenderer.jsx';
-import ImageRenderer from './ImageRenderer.jsx';
-import DdayRenderer from './DdayRenderer.jsx';
-import WeddingContactRenderer from './WeddingContactRenderer.jsx';
-import GridGalleryRenderer from './GridGalleryRenderer.jsx';
-import SlideGalleryRenderer from './SlideGalleryRenderer.jsx';
-import MapView from './MapView.jsx';
-import MapInfoRenderer from './MapInfoRenderer.jsx';
-import CalendarRenderer from './CalendarRenderer.jsx';
-import BankAccountRenderer from './BankAccountRenderer.jsx';
-import CommentRenderer from './CommentRenderer.jsx';
-import WeddingInviteRenderer from './WeddingInviteRenderer.jsx';
-import MusicRenderer from './MusicRenderer.jsx';
-import KakaoTalkShareRenderer from "./KakaoTalkShareRenderer.jsx";
+import ButtonRenderer from "./ButtonRenderer";
+import TextRenderer from "./TextRenderer";
+import LinkRenderer from "./LinkRenderer";
+import AttendRenderer from "./AttendRenderer";
+import ImageRenderer from "./ImageRenderer";
+import DdayRenderer from "./DdayRenderer.jsx";
+import WeddingContactRenderer from "./WeddingContactRenderer.jsx";
+import GridGalleryRenderer from "./GridGalleryRenderer";
+import SlideGalleryRenderer from "./SlideGalleryRenderer";
+import MapView from "./MapView";
+import MapInfoRenderer from './MapInfoRenderer';
+import CalendarRenderer from './CalendarRenderer';
+import BankAccountRenderer from './BankAccountRenderer';
+import CommentRenderer from './CommentRenderer';
+import SlidoRenderer from './SlidoRenderer';
+import WeddingInviteRenderer from './WeddingInviteRenderer'; 
+import MusicRenderer from './MusicRenderer';
 import PageRenderer from "./PageRenderer.jsx";
+
 
 // 컴포넌트 타입별 렌더러 매핑 함수
 export function getRendererByType(type) {
@@ -68,6 +71,8 @@ export function getRendererByType(type) {
       return BankAccountRenderer;
     case 'comment':
       return CommentRenderer;
+    case 'slido':
+      return SlidoRenderer;
     case 'weddingInvite':
       return WeddingInviteRenderer;
     case 'musicPlayer':

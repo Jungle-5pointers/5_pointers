@@ -13,6 +13,7 @@ export { default as MapInfoRenderer } from '../../../apps/frontend/src/pages/NoC
 export { default as CalendarRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/CalendarRenderer.jsx';
 export { default as BankAccountRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/BankAccountRenderer.jsx';
 export { default as CommentRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/CommentRenderer.jsx';
+export { default as SlidoRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/SlidoRenderer.jsx';
 export { default as WeddingInviteRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/WeddingInviteRenderer.jsx';
 export { default as MusicRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/MusicRenderer.jsx';
 export { default as KakaoTalkShareRenderer } from '../../../apps/frontend/src/pages/NoCodeEditor/ComponentRenderers/KakaoTalkShareRenderer';

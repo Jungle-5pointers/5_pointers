@@ -1,0 +1,10 @@
+{
+  "type": "slido",
+  "label": "실시간 의견",
+  "defaultProps": {
+    "question": "여러분의 의견을 들려주세요",
+    "placeholder": "의견을 입력하세요...",
+    "backgroundColor": "#ffffff",
+    "animation": true
+  }
+}

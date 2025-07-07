@@ -33,6 +33,8 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
         return ComponentEditors.BankAccountEditor;
       case 'comment':
         return ComponentEditors.CommentEditor;
+      case 'slido':
+        return ComponentEditors.SlidoEditor;
       case 'weddingInvite':
         return ComponentEditors.WeddingInviteEditor;
       case 'musicPlayer':
@@ -60,6 +62,7 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       weddingContact: '💒',
       bankAccount: '🏦',
       comment: '💬',
+      slido: '💭',
       gridGallery: '🖼️',
       slideGallery: '🎞️',
       mapInfo: '📍',
@@ -88,6 +91,7 @@ function Inspector({ selectedComp, onUpdate, color, nickname, roomId }) {
       calendar: 'Calendar',
       bankAccount: 'Bank Account',
       comment: 'Comment',
+      slido: 'Slido',
       mapInfo: 'Map Info',
       weddingInvite: 'Wedding Invite',
       musicPlayer: 'Music Player',

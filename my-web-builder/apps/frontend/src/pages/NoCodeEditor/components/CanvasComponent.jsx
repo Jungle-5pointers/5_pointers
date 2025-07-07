@@ -14,6 +14,7 @@ import { MapInfoRenderer } from '../ComponentRenderers';
 import CalendarRenderer from '../ComponentRenderers/CalendarRenderer';
 import BankAccountRenderer from '../ComponentRenderers/BankAccountRenderer';
 import CommentRenderer from '../ComponentRenderers/CommentRenderer';
+import SlidoRenderer from '../ComponentRenderers/SlidoRenderer';
 import { clamp, resolveCollision, calculateSnapPosition, calculateSnapLines, getFinalStyles } from '../utils/editorUtils';
 import MusicRenderer from '../ComponentRenderers/MusicRenderer';
 import KakaoTalkShareRenderer from '../ComponentRenderers/KakaoTalkShareRenderer';
@@ -223,6 +224,8 @@ function CanvasComponent({
         return <BankAccountRenderer comp={componentWithFinalStyles} isEditor={true} />;
       case 'comment':
         return <CommentRenderer comp={componentWithFinalStyles} isEditor={true} viewport={viewport} />;
+      case 'slido':
+        return <SlidoRenderer comp={componentWithFinalStyles} isEditor={true} onUpdate={onUpdate} viewport={viewport} />;
       case 'musicPlayer':
         return <MusicRenderer comp={componentWithFinalStyles} isEditor={true} onUpdate={onUpdate} viewport={viewport} />;
       case 'kakaotalkShare':

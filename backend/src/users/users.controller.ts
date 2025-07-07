@@ -6,7 +6,6 @@ import { UsersService } from "./users.service";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import * as fs from "fs";
 
-
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -53,7 +52,6 @@ export class UsersController {
   @Post('pages')
   async createPage(@Request() req, @Body() body: { subdomain?: string; title?: string; templateId?: string }) {
     return this.usersService.createPage(req.user.id, body);
-
   }
 
   // 🖼️ 이미지 업로드 엔드포인트
@@ -68,7 +66,6 @@ export class UsersController {
           const day = String(now.getDate()).padStart(2, "0");
           const uploadPath = join(process.cwd(), "public", "uploads", "images", String(year), month, day);
           
-          // 디렉토리 생성 (동기적으로)
           fs.mkdirSync(uploadPath, { recursive: true });
           
           cb(null, uploadPath);
@@ -95,7 +92,6 @@ export class UsersController {
       throw new BadRequestException("파일이 업로드되지 않았습니다.");
     }
 
-    // 파일 경로를 URL 형태로 변환
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -149,6 +145,22 @@ export class UsersController {
     @Body() body: { password: string }
   ) {
     return this.usersService.deleteComment(pageId, componentId, commentId, body.password);
+  }
+
+  // Slido 의견 조회
+  @Get("pages/:pageId/slido/:componentId")
+  async getSlido(@Param("pageId") pageId: string, @Param("componentId") componentId: string) {
+    return this.usersService.getSlido(pageId, componentId);
+  }
+
+  // Slido 의견 작성
+  @Post("pages/:pageId/slido/:componentId")
+  async createSlido(
+    @Param("pageId") pageId: string,
+    @Param("componentId") componentId: string,
+    @Body() slidoData: { content: string }
+  ) {
+    return this.usersService.createSlido(pageId, componentId, slidoData);
   }
 
   // 🔄 새로고침 복구 시스템 API

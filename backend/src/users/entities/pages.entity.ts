@@ -17,6 +17,12 @@ export enum PageStatus {
   DEPLOYED = 'DEPLOYED',
 }
 
+// DesignMode Enum 추가
+export enum DesignMode {
+  DESKTOP = 'desktop',
+  MOBILE = 'mobile',
+}
+
 @Entity('pages')
 export class Pages {
   @PrimaryGeneratedColumn('uuid')
@@ -43,6 +49,13 @@ export class Pages {
     default: PageStatus.DRAFT,
   })
   status: PageStatus;
+
+  @Column({
+    type: 'enum',
+    enum: DesignMode,
+    default: DesignMode.DESKTOP,
+  })
+  designMode: DesignMode;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

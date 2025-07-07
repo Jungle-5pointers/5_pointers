@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Users, AuthProvider } from './entities/users.entity';
-import { Pages, PageStatus } from './entities/pages.entity';
+import { Pages, PageStatus, DesignMode } from './entities/pages.entity';
 import { Submissions } from './entities/submissions.entity';
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs';
@@ -166,6 +166,47 @@ export class UsersService {
     }
 
     page.title = title;
+    return this.pagesRepository.save(page);
+  }
+
+  // 페이지 디자인 모드 변경
+  async updateDesignMode(
+    userId: number,
+    pageId: string,
+    designMode: 'desktop' | 'mobile',
+  ): Promise<Pages> {
+    // 페이지 소유자 또는 멤버 권한 확인
+    let page = await this.pagesRepository.findOne({
+      where: { id: pageId, owner: { id: userId } },
+    });
+
+    // 페이지 소유자가 아니면 멤버 권한 확인
+    if (!page) {
+      const pageMembersRepository =
+        this.pagesRepository.manager.getRepository('PageMembers');
+      const member = await pageMembersRepository.findOne({
+        where: {
+          page: { id: pageId },
+          user: { id: userId },
+          status: 'ACCEPTED',
+        },
+      });
+
+      if (!member) {
+        throw new Error('Page not found or no permission');
+      }
+
+      page = await this.pagesRepository.findOne({
+        where: { id: pageId },
+      });
+
+      if (!page) {
+        throw new Error('Page not found');
+      }
+    }
+
+    // designMode 업데이트
+    page.designMode = designMode as DesignMode;
     return this.pagesRepository.save(page);
   }
 

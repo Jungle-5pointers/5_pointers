@@ -72,7 +72,11 @@ function NoCodeEditor({ initialComponents = [] }) {
   });
 
   // 3. UI 상호작용 관리
-  const interaction = useEditorInteractionManager(designMode, setDesignMode);
+  const interaction = useEditorInteractionManager(
+    designMode,
+    setDesignMode,
+    roomId
+  );
 
   // 4. 협업 동기화 로직
   const collaboration = useCollaboration({

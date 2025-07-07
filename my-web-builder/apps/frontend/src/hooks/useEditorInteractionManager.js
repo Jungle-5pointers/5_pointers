@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 /**
  * 에디터 UI 상호작용 관리 훅
  * - UI 상태 관리 (선택, 줌, 패널, 모달 등)
  * - 뷰포트/편집모드 전환 핸들러
  */
-export function useEditorInteractionManager(designMode, setDesignMode) {
+export function useEditorInteractionManager(designMode, setDesignMode, roomId) {
   // UI 상태 관리
   const [selectedId, setSelectedId] = useState(null);
   const [snapLines, setSnapLines] = useState({ vertical: [], horizontal: [] });
@@ -54,8 +55,13 @@ export function useEditorInteractionManager(designMode, setDesignMode) {
 
   // 편집 기준 모드 변경 핸들러
   const handleDesignModeChange = useCallback(
-    async (newDesignMode, roomId) => {
+    async (newDesignMode) => {
       if (newDesignMode === designMode) return;
+      if (!roomId) {
+        console.error('roomId가 필요합니다.');
+        alert('페이지 ID가 유효하지 않습니다.');
+        return;
+      }
 
       // 변경 확인 메시지
       const confirmChange = window.confirm(
@@ -64,21 +70,28 @@ export function useEditorInteractionManager(designMode, setDesignMode) {
 
       if (!confirmChange) return;
 
-      console.log(`🔄 편집 기준 변경: ${designMode} → ${newDesignMode}`);
+      console.log(
+        `🔄 편집 기준 변경: ${designMode} → ${newDesignMode} (roomId: ${roomId})`
+      );
 
       try {
         // API 호출하여 DB에 designMode 저장
         const token = localStorage.getItem('token');
-        const response = await fetch(`/api/users/pages/${roomId}/design-mode`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ designMode: newDesignMode }),
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/users/pages/${roomId}/design-mode`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ designMode: newDesignMode }),
+          }
+        );
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('서버 응답:', errorText);
           throw new Error('편집 기준 변경 실패');
         }
 
@@ -97,7 +110,7 @@ export function useEditorInteractionManager(designMode, setDesignMode) {
         alert('편집 기준 변경에 실패했습니다. 다시 시도해주세요.');
       }
     },
-    [designMode, setDesignMode]
+    [designMode, setDesignMode, roomId]
   );
 
   // 템플릿 저장 관련 핸들러들

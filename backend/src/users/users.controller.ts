@@ -50,6 +50,21 @@ export class UsersController {
     return this.usersService.updatePageTitle(req.user.id, pageId, body.title);
   }
 
+  // 페이지 디자인 모드 변경 API
+  @UseGuards(JwtAuthGuard)
+  @Patch('pages/:pageId/design-mode')
+  async updateDesignMode(
+    @Request() req,
+    @Param('pageId') pageId: string,
+    @Body() body: { designMode: 'desktop' | 'mobile' },
+  ) {
+    return this.usersService.updateDesignMode(
+      req.user.id,
+      pageId,
+      body.designMode,
+    );
+  }
+
   // 페이지 컨텐츠 업데이트 API (Y.js 백업용)
   @UseGuards(JwtAuthGuard)
   @Put('pages/room/:roomId/content')
@@ -100,11 +115,11 @@ export class UsersController {
             month,
             day,
           );
-          
+
           // 디렉토리 생성 (동기적으로)
 
           fs.mkdirSync(uploadPath, { recursive: true });
-          
+
           cb(null, uploadPath);
         },
         filename: (req, file, cb) => {
@@ -137,7 +152,7 @@ export class UsersController {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    
+
     const imageUrl = `/uploads/images/${year}/${month}/${day}/${file.filename}`;
 
     return {

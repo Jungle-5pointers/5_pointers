@@ -1,0 +1,129 @@
+name: Deploy Subdomain Server (Fixed)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'subdomain-server.js'
+      - '.github/workflows/subdomain-server-fixed.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ap-northeast-2
+
+      - name: Deploy to EC2 via SSM
+        run: |
+          echo "🚀 서브도메인 서버 배포 시작..."
+          
+          # 인스턴스 ID 가져오기
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=PageCube-Subdomain-Simple" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' \
+            --output text)
+          
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "❌ 실행 중인 PageCube-Subdomain-Simple 인스턴스를 찾을 수 없습니다."
+            exit 1
+          fi
+          
+          echo "✅ 인스턴스 ID: $INSTANCE_ID"
+          
+          # S3에 파일 업로드
+          aws s3 cp subdomain-server.js s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy/
+          aws s3 cp package.json s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy/ || echo "package.json 없음, 건너뜀"
+          
+          # SSM을 통해 배포 명령 실행
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids $INSTANCE_ID \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "#!/bin/bash",
+              "set -e",
+              "echo \"🔄 서브도메인 서버 업데이트 시작...\"",
+              "cd /home/ssm-user",
+              "# 기존 프로세스 종료",
+              "pkill -f subdomain-server || true",
+              "sleep 3",
+              "# 새 파일 다운로드",
+              "aws s3 cp s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy/subdomain-server.js ./ --region ap-northeast-2",
+              "# 서버 백그라운드 시작",
+              "nohup node subdomain-server.js > server.log 2>&1 &",
+              "sleep 5",
+              "# 헬스체크",
+              "if curl -f http://localhost:3001/health; then",
+              "  echo \"✅ 서브도메인 서버 업데이트 성공!\"",
+              "else",
+              "  echo \"❌ 서버 시작 실패\"",
+              "  tail -20 server.log",
+              "  exit 1",
+              "fi"
+            ]' \
+            --query 'Command.CommandId' \
+            --output text)
+          
+          echo "📋 명령 ID: $COMMAND_ID"
+          
+          # 명령 실행 완료 대기
+          echo "⏳ 배포 명령 실행 대기 중..."
+          aws ssm wait command-executed \
+            --command-id $COMMAND_ID \
+            --instance-id $INSTANCE_ID \
+            --max-attempts 30 \
+            --delay 10
+          
+          # 실행 결과 확인
+          RESULT=$(aws ssm get-command-invocation \
+            --command-id $COMMAND_ID \
+            --instance-id $INSTANCE_ID \
+            --query 'Status' \
+            --output text)
+          
+          if [ "$RESULT" = "Success" ]; then
+            echo "✅ 배포 성공!"
+          else
+            echo "❌ 배포 실패!"
+            aws ssm get-command-invocation \
+              --command-id $COMMAND_ID \
+              --instance-id $INSTANCE_ID \
+              --query 'StandardErrorContent' \
+              --output text
+            exit 1
+          fi
+
+      - name: Health Check
+        run: |
+          # 현재 IP 주소 가져오기
+          CURRENT_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=PageCube-Subdomain-Simple" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].PublicIpAddress' \
+            --output text)
+          
+          echo "🌐 현재 IP: $CURRENT_IP"
+          
+          # 헬스체크
+          echo "🔍 헬스체크 수행 중..."
+          for i in {1..10}; do
+            if curl -f --connect-timeout 10 http://$CURRENT_IP:3001/health; then
+              echo "✅ 헬스체크 성공!"
+              echo "🔗 서버 주소: http://$CURRENT_IP:3001"
+              echo "🌐 서브도메인 테스트: curl -H 'Host: test.pagecube.net' http://$CURRENT_IP:3001"
+              exit 0
+            fi
+            echo "⏳ 재시도 중... ($i/10)"
+            sleep 10
+          done
+          
+          echo "❌ 헬스체크 실패"
+          exit 1

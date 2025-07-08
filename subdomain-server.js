@@ -32,27 +32,45 @@ app.use(async (req, res, next) => {
   
   try {
     // 백엔드 API를 통해 서브도메인 데이터 가져오기
-    const response = await axios.get(`${API_BASE_URL}/generator/subdomain/${subdomain}`);
+    const apiUrl = `${API_BASE_URL}/generator/subdomain/${subdomain}`;
+    console.log(`🌐 API 호출 시도: ${apiUrl}`);
+    
+    const response = await axios.get(apiUrl);
+    console.log(`✅ API 응답 성공:`, response.status, response.data);
     
     if (response.data && response.data.components) {
       const html = generateHTMLFromComponents(response.data.components);
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
     } else {
+      console.log(`⚠️ 컴포넌트 데이터 없음:`, response.data);
       res.status(404).send(`
         <h1>404 - Site Not Found</h1>
         <p>서브도메인 "${subdomain}"에 배포된 사이트가 없습니다.</p>
+        <p>Debug: No components found in response</p>
       `);
     }
   } catch (error) {
-    console.error('API error:', error);
+    console.error('❌ API 오류 상세:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: `${API_BASE_URL}/generator/subdomain/${subdomain}`
+    });
+    
     if (error.response && error.response.status === 404) {
       res.status(404).send(`
         <h1>404 - Site Not Found</h1>
         <p>서브도메인 "${subdomain}"에 배포된 사이트가 없습니다.</p>
+        <p>Debug: API returned 404</p>
       `);
     } else {
-      res.status(500).send('<h1>500 - Server Error</h1>');
+      res.status(500).send(`
+        <h1>500 - Server Error</h1>
+        <p>API 연결 오류: ${error.message}</p>
+        <p>Debug: ${error.response?.status || 'Network Error'}</p>
+      `);
     }
   }
 });

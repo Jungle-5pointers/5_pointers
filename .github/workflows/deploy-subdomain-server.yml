@@ -1,0 +1,477 @@
+name: Deploy Subdomain Server to EC2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'subdomain-server.js'
+      - 'subdomain-proxy.js'
+      - 'package.json'
+      - '.github/workflows/deploy-subdomain-server.yml'
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'subdomain-server.js'
+      - 'subdomain-proxy.js'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even without file changes'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  DEPLOYMENT_DIR: /home/ubuntu/subdomain-server
+  BACKUP_DIR: /home/ubuntu/subdomain-server-backups
+  NODE_VERSION: '20'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if deployment is needed
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "Manual deployment triggered"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "Push to main branch detected"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "Merged PR detected"
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            echo "No deployment needed"
+          fi
+
+      - name: Validate required files
+        if: steps.check.outputs.should_deploy == 'true'
+        run: |
+          echo "🔍 Validating required files..."
+          
+          required_files=("subdomain-server.js" "subdomain-proxy.js" "package.json")
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Required file missing: $file"
+              exit 1
+            fi
+            echo "✅ Found: $file"
+          done
+          
+          echo "📦 Validating package.json..."
+          if ! jq empty package.json 2>/dev/null; then
+            echo "❌ Invalid package.json format"
+            exit 1
+          fi
+          
+          echo "🎯 Checking Node.js syntax..."
+          node --check subdomain-server.js
+          node --check subdomain-proxy.js
+          
+          echo "✅ All validations passed"
+
+  deploy:
+    needs: validate
+    if: needs.validate.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: production
+      url: https://${{ secrets.SUBDOMAIN_SERVER_HOST }}:3001
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies locally (for validation)
+        run: |
+          if [[ -f "package-lock.json" ]]; then
+            npm ci --production
+          else
+            npm install --production
+          fi
+
+      - name: Create PM2 ecosystem configuration
+        run: |
+          mkdir -p deployment-files
+          
+          cat > deployment-files/ecosystem.config.js << 'EOF'
+          module.exports = {
+            apps: [
+              {
+                name: 'subdomain-server',
+                script: './subdomain-server.js',
+                instances: 1,
+                autorestart: true,
+                watch: false,
+                max_memory_restart: '512M',
+                env: {
+                  NODE_ENV: 'production',
+                  PORT: 3001,
+                  API_BASE_URL: 'https://api.pagecube.net/api'
+                },
+                error_file: './logs/subdomain-server-error.log',
+                out_file: './logs/subdomain-server-out.log',
+                log_file: './logs/subdomain-server-combined.log',
+                time: true,
+                max_restarts: 10,
+                min_uptime: '10s',
+                log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
+              },
+              {
+                name: 'subdomain-proxy',
+                script: './subdomain-proxy.js',
+                instances: 1,
+                autorestart: true,
+                watch: false,
+                max_memory_restart: '256M',
+                env: {
+                  NODE_ENV: 'production',
+                  PORT: 3002,
+                  API_BASE_URL: 'https://api.pagecube.net/api'
+                },
+                error_file: './logs/subdomain-proxy-error.log',
+                out_file: './logs/subdomain-proxy-out.log',
+                log_file: './logs/subdomain-proxy-combined.log',
+                time: true,
+                max_restarts: 10,
+                min_uptime: '10s',
+                log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
+              }
+            ]
+          };
+          EOF
+
+      - name: Create deployment script
+        run: |
+          cat > deployment-files/deploy.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          
+          # Colors for output
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[1;33m'
+          BLUE='\033[0;34m'
+          NC='\033[0m' # No Color
+          
+          log() {
+            echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
+          }
+          
+          success() {
+            echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅${NC} $1"
+          }
+          
+          warning() {
+            echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️${NC} $1"
+          }
+          
+          error() {
+            echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌${NC} $1"
+          }
+          
+          DEPLOYMENT_DIR="/home/ubuntu/subdomain-server"
+          BACKUP_DIR="/home/ubuntu/subdomain-server-backups"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          log "🚀 Starting subdomain server deployment..."
+          
+          # Create directories
+          mkdir -p "$DEPLOYMENT_DIR" "$BACKUP_DIR" "$DEPLOYMENT_DIR/logs"
+          
+          # Check if PM2 is installed
+          if ! command -v pm2 &> /dev/null; then
+            log "📦 Installing PM2..."
+            npm install -g pm2
+          fi
+          
+          # Navigate to deployment directory
+          cd "$DEPLOYMENT_DIR"
+          
+          # Create backup if files exist
+          if [[ -f "subdomain-server.js" ]]; then
+            log "💾 Creating backup..."
+            backup_name="backup_$TIMESTAMP"
+            mkdir -p "$BACKUP_DIR/$backup_name"
+            cp -r ./* "$BACKUP_DIR/$backup_name/" 2>/dev/null || true
+            success "Backup created: $backup_name"
+            
+            # Keep only last 5 backups
+            cd "$BACKUP_DIR"
+            ls -t | tail -n +6 | xargs -r rm -rf
+            cd "$DEPLOYMENT_DIR"
+          fi
+          
+          # Stop existing processes gracefully
+          log "🛑 Stopping existing processes..."
+          pm2 stop ecosystem.config.js 2>/dev/null || warning "No existing processes to stop"
+          pm2 delete ecosystem.config.js 2>/dev/null || warning "No existing processes to delete"
+          
+          # Install/update dependencies
+          log "📦 Installing dependencies..."
+          npm install --production --no-fund --no-audit
+          
+          # Validate files before starting
+          log "🔍 Validating server files..."
+          node --check subdomain-server.js
+          node --check subdomain-proxy.js
+          success "File validation passed"
+          
+          # Start processes
+          log "▶️ Starting processes..."
+          pm2 start ecosystem.config.js
+          
+          # Wait for processes to stabilize
+          log "⏳ Waiting for processes to stabilize..."
+          sleep 5
+          
+          # Check process status
+          if pm2 list | grep -q "online"; then
+            success "Processes started successfully"
+          else
+            error "Failed to start processes"
+            pm2 logs --lines 20
+            exit 1
+          fi
+          
+          # Save PM2 configuration
+          pm2 save
+          
+          # Setup startup script if not already done
+          if ! pm2 startup | grep -q "already"; then
+            warning "Setting up PM2 startup script"
+            pm2 startup systemd -u ubuntu --hp /home/ubuntu
+          fi
+          
+          success "🎉 Deployment completed successfully!"
+          
+          # Show final status
+          log "📊 Final status:"
+          pm2 status
+          pm2 monit --no-interaction || true
+          EOF
+          
+          chmod +x deployment-files/deploy.sh
+
+      - name: Create deployment package
+        run: |
+          # Copy required files
+          cp subdomain-server.js deployment-files/
+          cp subdomain-proxy.js deployment-files/
+          cp package.json deployment-files/
+          
+          # Copy package-lock.json if it exists
+          if [[ -f "package-lock.json" ]]; then
+            cp package-lock.json deployment-files/
+          fi
+          
+          # Create deployment package
+          cd deployment-files
+          tar -czf ../subdomain-deployment.tar.gz .
+          cd ..
+          
+          echo "📦 Deployment package created:"
+          ls -la subdomain-deployment.tar.gz
+
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SUBDOMAIN_SERVER_HOST }}
+          username: ${{ secrets.SUBDOMAIN_SERVER_USER }}
+          key: ${{ secrets.SUBDOMAIN_SERVER_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          script: |
+            echo "🔗 SSH connection successful"
+            echo "📍 Server info:"
+            echo "  - Hostname: $(hostname)"
+            echo "  - Uptime: $(uptime)"
+            echo "  - Node.js: $(node --version 2>/dev/null || echo 'Not installed')"
+            echo "  - NPM: $(npm --version 2>/dev/null || echo 'Not installed')"
+            echo "  - PM2: $(pm2 --version 2>/dev/null || echo 'Not installed')"
+
+      - name: Copy deployment package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SUBDOMAIN_SERVER_HOST }}
+          username: ${{ secrets.SUBDOMAIN_SERVER_USER }}
+          key: ${{ secrets.SUBDOMAIN_SERVER_SSH_KEY }}
+          port: 22
+          timeout: 120s
+          source: "subdomain-deployment.tar.gz"
+          target: "/home/ubuntu/"
+          overwrite: true
+
+      - name: Extract and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SUBDOMAIN_SERVER_HOST }}
+          username: ${{ secrets.SUBDOMAIN_SERVER_USER }}
+          key: ${{ secrets.SUBDOMAIN_SERVER_SSH_KEY }}
+          port: 22
+          timeout: 300s
+          script: |
+            set -euo pipefail
+            
+            echo "🏁 Starting server deployment..."
+            
+            # Ensure Node.js is available
+            if ! command -v node &> /dev/null; then
+              echo "❌ Node.js not found. Installing..."
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            
+            # Extract deployment package
+            cd /home/ubuntu
+            echo "📂 Extracting deployment package..."
+            
+            # Remove old deployment files
+            rm -rf ${{ env.DEPLOYMENT_DIR }}/*
+            
+            # Extract new files
+            tar -xzf subdomain-deployment.tar.gz -C ${{ env.DEPLOYMENT_DIR }}/
+            
+            # Execute deployment script
+            cd ${{ env.DEPLOYMENT_DIR }}
+            chmod +x deploy.sh
+            ./deploy.sh
+            
+            # Cleanup
+            rm -f /home/ubuntu/subdomain-deployment.tar.gz
+
+      - name: Post-deployment health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SUBDOMAIN_SERVER_HOST }}
+          username: ${{ secrets.SUBDOMAIN_SERVER_USER }}
+          key: ${{ secrets.SUBDOMAIN_SERVER_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          script: |
+            echo "🔍 Starting comprehensive health check..."
+            
+            # Wait for services to fully start
+            sleep 15
+            
+            # Check PM2 status
+            echo "📊 PM2 Status:"
+            pm2 status
+            
+            # Check if processes are running
+            if ! pm2 list | grep -q "subdomain-server.*online"; then
+              echo "❌ Subdomain server is not running"
+              echo "📋 Last 20 lines of logs:"
+              pm2 logs subdomain-server --lines 20
+              exit 1
+            fi
+            
+            if ! pm2 list | grep -q "subdomain-proxy.*online"; then
+              echo "❌ Subdomain proxy is not running"
+              echo "📋 Last 20 lines of logs:"
+              pm2 logs subdomain-proxy --lines 20
+              exit 1
+            fi
+            
+            # Test HTTP endpoints
+            echo "🌐 Testing HTTP endpoints..."
+            
+            # Test subdomain server
+            if curl -f -s --max-time 10 http://localhost:3001/ > /dev/null; then
+              echo "✅ Subdomain server (port 3001) is responding"
+            else
+              echo "❌ Subdomain server health check failed"
+              curl -v http://localhost:3001/ || true
+            fi
+            
+            # Test proxy server
+            if curl -f -s --max-time 10 http://localhost:3002/ > /dev/null; then
+              echo "✅ Subdomain proxy (port 3002) is responding"
+            else
+              echo "❌ Subdomain proxy health check failed"
+              curl -v http://localhost:3002/ || true
+            fi
+            
+            # Check system resources
+            echo "💻 System Resources:"
+            echo "  - Memory: $(free -h | grep Mem | awk '{print $3"/"$2}')"
+            echo "  - Disk: $(df -h / | tail -1 | awk '{print $3"/"$2" ("$5" used)"}')"
+            echo "  - Load: $(uptime | awk -F'load average:' '{print $2}')"
+            
+            echo "✅ Health check completed successfully!"
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SUBDOMAIN_SERVER_HOST }}
+          username: ${{ secrets.SUBDOMAIN_SERVER_USER }}
+          key: ${{ secrets.SUBDOMAIN_SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            echo "🔄 Deployment failed, initiating rollback..."
+            
+            BACKUP_DIR="/home/ubuntu/subdomain-server-backups"
+            DEPLOYMENT_DIR="/home/ubuntu/subdomain-server"
+            
+            # Find the latest backup
+            latest_backup=$(ls -t "$BACKUP_DIR" | head -1)
+            
+            if [[ -n "$latest_backup" && -d "$BACKUP_DIR/$latest_backup" ]]; then
+              echo "📦 Restoring from backup: $latest_backup"
+              
+              # Stop current processes
+              pm2 stop all || true
+              pm2 delete all || true
+              
+              # Restore backup
+              rm -rf "$DEPLOYMENT_DIR"/*
+              cp -r "$BACKUP_DIR/$latest_backup"/* "$DEPLOYMENT_DIR/"
+              
+              # Restart services
+              cd "$DEPLOYMENT_DIR"
+              pm2 start ecosystem.config.js || true
+              
+              echo "✅ Rollback completed"
+              pm2 status
+            else
+              echo "❌ No backup found for rollback"
+            fi
+
+  notify:
+    needs: [validate, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deployment notification
+        run: |
+          if [[ "${{ needs.deploy.result }}" == "success" ]]; then
+            echo "🎉 Subdomain server deployment completed successfully!"
+            echo "🔗 Server URL: https://${{ secrets.SUBDOMAIN_SERVER_HOST }}:3001"
+          elif [[ "${{ needs.deploy.result }}" == "failure" ]]; then
+            echo "❌ Subdomain server deployment failed!"
+            echo "🔄 Rollback may have been initiated"
+          elif [[ "${{ needs.validate.outputs.should_deploy }}" == "false" ]]; then
+            echo "ℹ️ No deployment needed - no relevant files changed"
+          else
+            echo "⚠️ Deployment status unclear"
+          fi

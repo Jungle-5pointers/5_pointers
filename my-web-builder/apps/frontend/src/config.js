@@ -42,7 +42,7 @@ const isProductionEnvironment = () => {
 
 // API 서버 설정 - 환경변수 기반
 export const API_BASE_URL = getEnvVar('VITE_API_URL') || getEnvVar('NEXT_PUBLIC_API_URL') || 
-  (isProductionEnvironment() ? 'https://pagecube.net/api' : 'http://localhost:3000/api');
+  (isProductionEnvironment() ? 'https://api.pagecube.net/api' : 'http://localhost:3000/api');
 
 // Y.js WebSocket 서버 설정 - 환경변수 기반
 export const YJS_WEBSOCKET_URL = getEnvVar('VITE_YJS_WEBSOCKET_URL') || getEnvVar('NEXT_PUBLIC_YJS_WEBSOCKET_URL') || 

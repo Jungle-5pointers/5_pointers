@@ -58,6 +58,14 @@ export class GeneratorService {
     page.content = { components };
     await this.pagesRepository.save(page);
     
+    console.log(`✅ 배포 완료:`, {
+      projectId,
+      subdomain,
+      url,
+      componentsCount: components?.length || 0,
+      pageId: page.id
+    });
+    
     return { url };
   }
 
@@ -122,10 +130,20 @@ export class GeneratorService {
    */
   async getPageBySubdomain(subdomain: string) {
     try {
+      console.log(`🔍 서브도메인 조회 요청: ${subdomain}`);
+      
       // pages 테이블에서 subdomain으로 직접 조회
       const page = await this.pagesRepository.findOne({
         where: { subdomain, status: PageStatus.DEPLOYED }
       });
+      
+      console.log(`📋 조회 결과:`, page ? {
+        id: page.id,
+        subdomain: page.subdomain,
+        status: page.status,
+        hasContent: !!page.content,
+        componentsCount: page.content?.components?.length || 0
+      } : 'NOT_FOUND');
       
       if (!page) {
         throw new NotFoundException(`Subdomain "${subdomain}" not found`);
@@ -137,6 +155,7 @@ export class GeneratorService {
         pageId: page.id
       };
     } catch (error) {
+      console.error(`❌ 서브도메인 조회 오류 (${subdomain}):`, error.message);
       throw error;
     }
   }

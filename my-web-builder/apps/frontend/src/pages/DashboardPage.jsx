@@ -509,9 +509,9 @@ function DashboardPage({ user, onLogout }) {
                     </svg>
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-800">빈 큐브로 시작하기</h3>
+                <h3 className="text-2xl font-bold text-slate-800">빈 페이지부터 시작하기</h3>
               </div>
-              <p className="text-slate-600 ml-15">완전히 새로운 큐브를 처음부터 조립해보세요</p>
+              {/* <p className="text-slate-600 ml-15">완전히 새로운 큐브를 처음부터 조립해보세요</p> */}
             </div>
             <button
               onClick={handleCreateNew}
@@ -537,8 +537,8 @@ function DashboardPage({ user, onLogout }) {
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-slate-800">큐브 테마</h3>
-                <p className="text-slate-600">미리 준비된 큐브 테마를 선택해보세요</p>
+                <h3 className="text-2xl font-bold text-slate-800">큐브 템플릿</h3>
+                <p className="text-slate-600">템플릿을 선택하여 쉽게 웹페이지를 만들어보세요</p>
               </div>
             </div>
             <div className="flex gap-2">

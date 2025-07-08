@@ -6,7 +6,7 @@ export default function MapInfoRenderer({ comp }) {
     containerHeight = comp.height || 275,
     sections = [],
     fontSize = 14,
-    fontFamily = '"Noto Sans KR", "맑은 고딕", "Malgun Gothic", sans-serif"',
+    fontFamily = '"Noto Sans KR", "맑a은 고딕", "Malgun Gothic", sans-serif"',
     fontWeight = 'normal',
     fontStyle = 'normal',
     textDecoration = 'none',

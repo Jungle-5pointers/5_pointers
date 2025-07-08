@@ -1,20 +1,16 @@
-import { Controller, Get, Req, Res, Param } from '@nestjs/common';
+import { Controller, Get, Param, Req, Res, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { AppService } from './app.service';
-import { SubdomainService } from './subdomain/subdomain.service';
+import { SubdomainService } from './subdomain.service';
 
 @Controller()
-export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly subdomainService: SubdomainService
-  ) {}
+export class SubdomainController {
+  constructor(private readonly subdomainService: SubdomainService) {}
 
-  @Get()
-  async getRoot(@Req() req: Request, @Res() res: Response) {
+  @Get('/')
+  async handleSubdomainRoot(@Req() req: Request, @Res() res: Response) {
     const subdomain = (req as any).subdomain;
     
-    console.log('Root request - subdomain:', subdomain);
+    console.log('Subdomain root request:', subdomain);
     console.log('Host:', req.get('host'));
     
     // API 서브도메인이나 메인 도메인은 일반 API 응답
@@ -54,23 +50,19 @@ export class AppController {
     }
   }
 
-  @Get(':pageId')
-  async getPage(
+  @Get('/:pageId')
+  async handleSubdomainPage(
     @Param('pageId') pageId: string,
-    @Req() req: Request, 
+    @Req() req: Request,
     @Res() res: Response
   ) {
     const subdomain = (req as any).subdomain;
     
-    console.log('Page request:', { subdomain, pageId });
+    console.log('Subdomain page request:', { subdomain, pageId });
     
     // API 경로는 다른 컨트롤러에서 처리하도록 제외
     if (!subdomain || subdomain === 'www' || subdomain === 'api') {
-      return res.status(400).json({
-        error: 'Invalid subdomain access',
-        subdomain: subdomain,
-        pageId: pageId
-      });
+      throw new HttpException('Invalid subdomain access', HttpStatus.BAD_REQUEST);
     }
     
     try {

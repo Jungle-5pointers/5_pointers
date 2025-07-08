@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { addUserColor } from '../../utils/userColors';
-import { getFinalStyles } from '../../pages/NoCodeEditor/utils/editorUtils';
 
 /**
  * 다른 사용자들의 실시간 커서를 렌더링하는 컴포넌트
@@ -131,14 +130,17 @@ export function CollaborativeSelections({ selections = [], components = [], zoom
           // 사용자 정보에 고유 색상 추가
           const userWithColor = addUserColor(selection.user);
 
-          // 컴포넌트의 실제 위치와 크기를 계산
-          const finalStyles = getFinalStyles(component, viewport);
+          // 컴포넌트의 실제 위치와 크기를 직접 가져오기 (단일 좌표계)
+          const componentX = component.x || 0;
+          const componentY = component.y || 0;
+          const componentWidth = component.width || 150;
+          const componentHeight = component.height || 50;
           
           // 컴포넌트 좌표와 크기를 스케일에 맞게 변환
-          const scaledX = finalStyles.x * scale;
-          const scaledY = finalStyles.y * scale;
-          const scaledWidth = finalStyles.width * scale;
-          const scaledHeight = finalStyles.height * scale;
+          const scaledX = componentX * scale;
+          const scaledY = componentY * scale;
+          const scaledWidth = componentWidth * scale;
+          const scaledHeight = componentHeight * scale;
 
           return (
             <div

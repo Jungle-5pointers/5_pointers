@@ -274,7 +274,7 @@ function NoCodeEditor({ pageId }) {
           roomId={roomId || pageId}
           isOpen={interaction.isLibraryOpen}
           onToggle={interaction.handleLibraryToggle}
-          isReady={isConnected}
+          isReady={true} // 항상 준비 상태로 설정 (Y.js 연결과 독립적)
         />
 
         {/* 중앙 캔버스 영역 */}

@@ -16,8 +16,6 @@ export { default as CommentRenderer } from './CommentRenderer';
 export { default as SlidoRenderer } from './SlidoRenderer';
 export { default as WeddingInviteRenderer } from './WeddingInviteRenderer'; 
 export { default as MusicRenderer } from './MusicRenderer';
-export { default as PageRenderer } from "./PageRenderer.jsx";
-
 // 개별 import (getRendererByType 함수에서 사용)
 import ButtonRenderer from "./ButtonRenderer";
 import TextRenderer from "./TextRenderer";
@@ -37,7 +35,6 @@ import SlidoRenderer from './SlidoRenderer';
 import WeddingInviteRenderer from './WeddingInviteRenderer'; 
 import MusicRenderer from './MusicRenderer';
 import KakaoTalkShareRenderer from "./KakaoTalkShareRenderer.jsx";
-import PageRenderer from "./PageRenderer.jsx";
 
 
 // 컴포넌트 타입별 렌더러 매핑 함수
@@ -79,9 +76,6 @@ export function getRendererByType(type) {
       return MusicRenderer;
     case 'kakaotalkShare':
       return KakaoTalkShareRenderer;
-    case "page":
-      return PageRenderer;
-      
     default:
       return null;
   }

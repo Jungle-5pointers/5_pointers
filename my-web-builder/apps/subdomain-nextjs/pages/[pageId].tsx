@@ -206,7 +206,6 @@ const DynamicPageRenderer = ({
                     map: { width: 400, height: 300 },
                     attend: { width: 300, height: 200 },
                     dday: { width: 250, height: 100 },
-                    page: { width: 300, height: 150 },
                     default: { width: 200, height: 100 }
                   };
                   return defaultSizes[componentType] || defaultSizes.default;

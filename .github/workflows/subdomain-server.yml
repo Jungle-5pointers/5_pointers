@@ -1,41 +1,21 @@
-name: Deploy Subdomain Server to AWS EC2
+name: Deploy Subdomain Server (Final)
 
 on:
   push:
     branches: [main]
     paths:
       - 'subdomain-server.js'
-      - 'subdomain-proxy.js'
-      - 'setup-subdomains.sh'
-      - 'deployment-script.sh'
-      - 'fix-subdomain-deployment.sh'
-      - '.github/workflows/subdomain-server.yml'
-  pull_request:
-    types: [closed]
-    branches: [main]
-    paths:
-      - 'subdomain-server.js'
-      - 'subdomain-proxy.js'
-      - 'setup-subdomains.sh'
-      - 'deployment-script.sh'
-      - 'fix-subdomain-deployment.sh'
+      - '.github/workflows/subdomain-server-final.yml'
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Configure AWS credentials
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -43,298 +23,112 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ap-northeast-2
 
-      - name: Create deployment package
+      - name: Deploy to EC2
         run: |
-          # Create deployment directory
-          mkdir -p subdomain-deployment
+          echo "🚀 서브도메인 서버 배포 시작..."
           
-          # Copy subdomain server files
-          cp subdomain-server.js subdomain-deployment/
-          cp subdomain-proxy.js subdomain-deployment/
-          cp setup-subdomains.sh subdomain-deployment/
-          cp deployment-script.sh subdomain-deployment/
-          cp fix-subdomain-deployment.sh subdomain-deployment/
+          # S3에 파일 업로드
+          aws s3 cp subdomain-server.js s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy/
           
-          # Copy deployed-sites directory if exists
-          if [ -d "deployed-sites" ]; then
-            cp -r deployed-sites subdomain-deployment/
-          fi
-          
-          # Create package.json for subdomain server
-          cat > subdomain-deployment/package.json << 'EOF'
-          {
-            "name": "pagecube-subdomain-server",
-            "version": "1.0.0",
-            "description": "PageCube subdomain server for multi-tenant site serving",
-            "main": "subdomain-server.js",
-            "scripts": {
-              "start": "node subdomain-server.js",
-              "dev": "nodemon subdomain-server.js"
-            },
-            "dependencies": {
-              "express": "^4.18.2",
-              "axios": "^1.6.0",
-              "cors": "^2.8.5",
-              "mysql2": "^3.6.0"
-            },
-            "engines": {
-              "node": ">=20.0.0"
-            }
-          }
-          EOF
-          
-          # Create ecosystem.config.js for PM2
-          cat > subdomain-deployment/ecosystem.config.js << 'EOF'
-          module.exports = {
-            apps: [{
-              name: 'pagecube-subdomain-server',
-              script: 'subdomain-server.js',
-              instances: 1,
-              exec_mode: 'fork',
-              env: {
-                NODE_ENV: 'production',
-                PORT: 3001,
-                API_BASE_URL: 'https://jungle-backend-prod-env.eba-ftfwcygq.ap-northeast-2.elasticbeanstalk.com/api'
-              },
-              error_file: '/var/log/pm2/subdomain-server-error.log',
-              out_file: '/var/log/pm2/subdomain-server-out.log',
-              log_file: '/var/log/pm2/subdomain-server.log',
-              merge_logs: true,
-              time: true,
-              max_restarts: 10,
-              min_uptime: '10s',
-              restart_delay: 4000
-            }]
-          };
-          EOF
-          
-          # Create deployment script
-          cat > subdomain-deployment/deploy.sh << 'EOF'
+          # 배포 스크립트 생성
+          cat > deploy.sh << 'DEPLOY'
           #!/bin/bash
           set -e
+          cd /home/ec2-user
           
-          echo "🚀 Starting PageCube Subdomain Server deployment..."
+          # 파일 다운로드
+          aws s3 cp s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy/subdomain-server.js ./
           
-          # Set environment variables
-          export API_BASE_URL="https://jungle-backend-prod-env.eba-ftfwcygq.ap-northeast-2.elasticbeanstalk.com/api"
-          export NODE_ENV="production"
-          export PORT="3001"
+          # 기존 프로세스 종료
+          pkill -f subdomain-server || true
+          sleep 2
           
-          # Update system packages
-          sudo apt-get update -y
-          
-          # Install Node.js 20 if not already installed
-          if ! command -v node &> /dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 20 ]]; then
-            echo "📦 Installing Node.js 20..."
+          # Node.js 설치 확인
+          if ! command -v node &> /dev/null; then
             curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
             sudo apt-get install -y nodejs
           fi
           
-          # Install PM2 globally if not installed
-          if ! command -v pm2 &> /dev/null; then
-            echo "📦 Installing PM2..."
-            sudo npm install -g pm2
-          fi
+          # 서버 시작
+          nohup node subdomain-server.js > /var/log/subdomain.log 2>&1 &
           
-          # Create application directory
-          sudo mkdir -p /opt/pagecube-subdomain
-          sudo chown -R $USER:$USER /opt/pagecube-subdomain
-          
-          # Backup existing deployment if exists
-          if [ -d "/opt/pagecube-subdomain/backup" ]; then
-            sudo rm -rf /opt/pagecube-subdomain/backup
-          fi
-          if [ -f "/opt/pagecube-subdomain/subdomain-server.js" ]; then
-            echo "📦 Creating backup of existing deployment..."
-            mkdir -p /opt/pagecube-subdomain/backup
-            cp -r /opt/pagecube-subdomain/*.js /opt/pagecube-subdomain/backup/ 2>/dev/null || true
-          fi
-          
-          # Copy new files
-          echo "📁 Copying new files..."
-          cp -r * /opt/pagecube-subdomain/
-          cd /opt/pagecube-subdomain
-          
-          # Install dependencies
-          echo "📦 Installing dependencies..."
-          npm install --production --no-audit
-          
-          # Create log directory
-          sudo mkdir -p /var/log/pm2
-          sudo chown -R $USER:$USER /var/log/pm2
-          
-          # Create deployed-sites directory if not exists
-          mkdir -p deployed-sites
-          
-          # Stop existing PM2 process if running
-          echo "🔄 Restarting PM2 process..."
-          pm2 stop pagecube-subdomain-server 2>/dev/null || true
-          pm2 delete pagecube-subdomain-server 2>/dev/null || true
-          
-          # Start with PM2
-          pm2 start ecosystem.config.js
-          
-          # Save PM2 configuration
-          pm2 save
-          
-          # Setup PM2 to start on boot (only if not already configured)
-          if ! sudo systemctl is-enabled pm2-$USER &>/dev/null; then
-            echo "⚙️ Setting up PM2 startup..."
-            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp /home/$USER
-          fi
-          
-          echo "✅ Subdomain server deployment completed!"
-          echo "📊 PM2 status:"
-          pm2 status
-          
-          echo "🌐 Server should be running on port 3001"
-          echo "🔍 Logs: pm2 logs pagecube-subdomain-server"
-          
-          # Test server response
+          # 테스트
           sleep 5
-          if curl -f http://localhost:3001 >/dev/null 2>&1; then
-            echo "✅ Server is responding on port 3001"
-          else
-            echo "⚠️ Server may not be responding yet, check logs: pm2 logs"
-          fi
-          EOF
+          curl -f http://localhost:3001 && echo "✅ 서버 시작 성공" || echo "❌ 서버 시작 실패"
+          DEPLOY
           
-          chmod +x subdomain-deployment/deploy.sh
+          # S3에 배포 스크립트 업로드
+          aws s3 cp deploy.sh s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy.sh
           
-          # Create deployment archive
-          cd subdomain-deployment
-          tar -czf ../subdomain-deployment.tar.gz .
-          cd ..
-
-      - name: Upload deployment package to S3
-        run: |
-          DEPLOYMENT_FILE="subdomain-deployment-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}.tar.gz"
-          aws s3 cp subdomain-deployment.tar.gz s3://elasticbeanstalk-ap-northeast-2-490004614784/$DEPLOYMENT_FILE
-          echo "DEPLOYMENT_FILE=$DEPLOYMENT_FILE" >> $GITHUB_ENV
-
-      - name: Deploy to EC2 instance
-        run: |
-          # Get PageCube-Subdomain-Simple instance ID dynamically
+          # 인스턴스 정보 가져오기
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --region ap-northeast-2 \
             --filters "Name=tag:Name,Values=PageCube-Subdomain-Simple" "Name=instance-state-name,Values=running" \
             --query 'Reservations[].Instances[].InstanceId' \
             --output text)
           
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "❌ PageCube-Subdomain-Simple instance not found or not running"
-            exit 1
-          fi
+          echo "✅ 인스턴스 ID: $INSTANCE_ID"
           
-          echo "✅ Found instance: $INSTANCE_ID"
+          # 간단한 User Data로 배포 실행
+          USER_DATA='#!/bin/bash
+          cd /home/ec2-user
+          aws s3 cp s3://elasticbeanstalk-ap-northeast-2-490004614784/github-deploy.sh ./
+          chmod +x github-deploy.sh
+          ./github-deploy.sh > /var/log/github-deploy.log 2>&1'
           
-          # Check if SSM agent is available
-          echo "🔍 Checking SSM agent availability..."
-          aws ssm describe-instance-information \
-            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
-            --region ap-northeast-2 \
-            --query 'InstanceInformationList[0].PingStatus' \
-            --output text
+          # 인스턴스 재시작
+          aws ec2 stop-instances --instance-ids $INSTANCE_ID
+          aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
           
-          S3_BUCKET="elasticbeanstalk-ap-northeast-2-490004614784"
+          # User Data 설정 (base64 인코딩)
+          echo "$USER_DATA" | base64 | tr -d '\n' > user-data-b64.txt
+          aws ec2 modify-instance-attribute --instance-id $INSTANCE_ID --user-data file://user-data-b64.txt
           
-          # Send deployment command via AWS Systems Manager
-          echo "🚀 Sending deployment command..."
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids $INSTANCE_ID \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "set -e",
-              "cd /tmp",
-              "echo \"📥 Downloading deployment package...\"",
-              "aws s3 cp s3://'$S3_BUCKET'/'$DEPLOYMENT_FILE' ./ --region ap-northeast-2",
-              "echo \"📦 Extracting deployment package...\"",
-              "tar -xzf '$DEPLOYMENT_FILE'",
-              "echo \"🔧 Setting permissions...\"",
-              "chmod +x deploy.sh",
-              "echo \"🚀 Running deployment script...\"",
-              "./deploy.sh",
-              "echo \"🧹 Cleaning up...\"",
-              "rm -f '$DEPLOYMENT_FILE'"
-            ]' \
-            --timeout-seconds 600 \
-            --region ap-northeast-2 \
-            --output text \
-            --query 'Command.CommandId')
+          # 인스턴스 시작
+          aws ec2 start-instances --instance-ids $INSTANCE_ID
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
           
-          echo "📋 Command ID: $COMMAND_ID"
-          
-          # Wait for command to complete with timeout
-          echo "⏳ Waiting for deployment to complete (max 10 minutes)..."
-          aws ssm wait command-executed \
-            --command-id $COMMAND_ID \
-            --instance-id $INSTANCE_ID \
-            --region ap-northeast-2 \
-            --cli-read-timeout 600 \
-            --cli-connect-timeout 60
-          
-          # Get command result
-          echo "📋 Deployment output:"
-          aws ssm get-command-invocation \
-            --command-id $COMMAND_ID \
-            --instance-id $INSTANCE_ID \
-            --region ap-northeast-2 \
-            --query 'StandardOutputContent' \
-            --output text
-          
-          # Check for errors
-          ERROR_OUTPUT=$(aws ssm get-command-invocation \
-            --command-id $COMMAND_ID \
-            --instance-id $INSTANCE_ID \
-            --region ap-northeast-2 \
-            --query 'StandardErrorContent' \
-            --output text)
-          
-          if [ "$ERROR_OUTPUT" != "None" ] && [ -n "$ERROR_OUTPUT" ]; then
-            echo "⚠️ Deployment errors:"
-            echo "$ERROR_OUTPUT"
-          fi
-          
-          # Check command status
-          STATUS=$(aws ssm get-command-invocation \
-            --command-id $COMMAND_ID \
-            --instance-id $INSTANCE_ID \
-            --region ap-northeast-2 \
-            --query 'Status' \
-            --output text)
-          
-          if [ "$STATUS" != "Success" ]; then
-            echo "❌ Deployment failed with status: $STATUS"
-            exit 1
-          fi
+          echo "✅ 배포 완료!"
 
-      - name: Health check
+      - name: Update DNS and Health Check
         run: |
-          echo "🔍 Performing health check..."
-          sleep 30
+          # 새 IP 주소 가져오기
+          NEW_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=PageCube-Subdomain-Simple" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].PublicIpAddress' \
+            --output text)
           
-          # Multiple health check attempts
+          echo "🌐 새 IP: $NEW_IP"
+          
+          # DNS 업데이트
+          aws route53 change-resource-record-sets \
+            --hosted-zone-id Z0193893QRN4IUT309BL \
+            --change-batch '{
+              "Changes": [{
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                  "Name": "*.pagecube.net",
+                  "Type": "A",
+                  "TTL": 300,
+                  "ResourceRecords": [{"Value": "'$NEW_IP'"}]
+                }
+              }]
+            }'
+          
+          echo "✅ DNS 업데이트 완료"
+          
+          # 헬스체크
+          echo "⏳ 2분 대기 후 헬스체크..."
+          sleep 120
+          
           for i in {1..5}; do
-            echo "🔍 Health check attempt $i/5..."
-            if curl -f --connect-timeout 10 --max-time 30 http://3.35.141.231:3001; then
-              echo "✅ Health check passed!"
-              break
-            else
-              echo "⚠️ Health check attempt $i failed, retrying in 10 seconds..."
-              if [ $i -eq 5 ]; then
-                echo "❌ All health checks failed"
-                exit 1
-              fi
-              sleep 10
+            if curl -f --connect-timeout 10 http://$NEW_IP:3001; then
+              echo "✅ 배포 성공! 서버 실행 중: http://$NEW_IP:3001"
+              echo "🔗 테스트: curl -H 'Host: 4asd.pagecube.net' http://$NEW_IP:3001"
+              exit 0
             fi
+            echo "⏳ 재시도 중... ($i/5)"
+            sleep 15
           done
           
-          echo "✅ Deployment completed successfully!"
-          echo "🌐 Subdomain server is running on: http://3.35.141.231:3001"
-          echo "📋 Test with: curl -H 'Host: test.pagecube.net' http://3.35.141.231:3001"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -rf subdomain-deployment/
-          rm -f subdomain-deployment.tar.gz
+          echo "❌ 헬스체크 실패"
+          exit 1

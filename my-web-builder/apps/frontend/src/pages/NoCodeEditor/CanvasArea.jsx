@@ -526,7 +526,7 @@ const CanvasArea = forwardRef(
 
     const actualCanvasSize = getActualCanvasSize();
     // 좌측 패딩(라이브러리 상태에 따라) + 우측 패딩(60px) + 여유 공간을 포함
-    const leftPadding = isLibraryOpen ? 280 : 40; // 라이브러리 열림/닫힘에 따라
+    const leftPadding = isLibraryOpen ? 80 : 40; // 라이브러리 열림/닫힘에 따라 (축소)
     const containerWidth =
       actualCanvasSize.width + (viewport === 'mobile' ? 40 : leftPadding + 60); // 모바일: 40px, 데스크톱: 동적
     const containerHeight = actualCanvasSize.height + 240; // 상하 패딩 축소
@@ -567,7 +567,7 @@ const CanvasArea = forwardRef(
             padding:
               viewport === 'mobile'
                 ? '10px'
-                : `20px 40px 120px ${isLibraryOpen ? '280px' : '20px'}`, // 여백 축소
+                : `20px 40px 120px ${isLibraryOpen ? '40px' : '20px'}`, // 좌측 여백 축소
             boxSizing: 'border-box',
           }}
         >

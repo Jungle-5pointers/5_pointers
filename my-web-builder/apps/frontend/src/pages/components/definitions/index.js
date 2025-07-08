@@ -16,10 +16,7 @@ import weddingInviteDef from './wedding-invite.json';
 import musicDef from './music.json';
 import slidoDef from './slido.json';
 import kakaotalkShareDef from './kakaotalk-share.json';
-import pageDef from "./page.json";
-
 export const ComponentList = [
-  pageDef,          // 페이지
   // 상단 우선순위 컴포넌트들
   mapDef,           // 지도
   imageDef,         // 이미지

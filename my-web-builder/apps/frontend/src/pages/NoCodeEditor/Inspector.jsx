@@ -24,7 +24,6 @@ function Inspector({ selectedComp, onUpdate, viewport }) {
     weddingInvite: ComponentEditors.WeddingInviteEditor,
     musicPlayer: ComponentEditors.MusicEditor,
     kakaotalkShare: ComponentEditors.KakaoTalkShareEditor,
-    page: ComponentEditors.PageEditor,
   };
 
   const SpecificEditor = editorMap[selectedComp.type];

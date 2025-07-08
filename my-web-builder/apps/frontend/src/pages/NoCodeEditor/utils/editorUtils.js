@@ -197,12 +197,6 @@ export function getComponentDimensions(type) {
       minWidth: 120,
       minHeight: 40,
     },
-    page: {
-      defaultWidth: 300,
-      defaultHeight: 150,
-      minWidth: 250,
-      minHeight: 120,
-    },
     slido: {
       defaultWidth: 400,
       defaultHeight: 300,

@@ -24,7 +24,6 @@ import {
 } from '../utils/editorUtils';
 import MusicRenderer from '../ComponentRenderers/MusicRenderer';
 import KakaoTalkShareRenderer from '../ComponentRenderers/KakaoTalkShareRenderer';
-import PageRenderer from '../ComponentRenderers/PageRenderer';
 
 // 그리드 크기 상수
 const GRID_SIZE = 50;
@@ -306,14 +305,6 @@ function CanvasComponent({
             isEditor={true}
             onUpdate={onUpdate}
             viewport={viewport}
-          />
-        );
-      case 'page':
-        return (
-          <PageRenderer
-            component={componentWithFinalStyles}
-            isEditor={true}
-            onUpdate={onUpdate}
           />
         );
       default:

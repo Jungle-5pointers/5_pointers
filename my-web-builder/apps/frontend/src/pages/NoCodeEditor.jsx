@@ -41,7 +41,7 @@ function NoCodeEditor({ pageId }) {
     setCanvasHeight,
     isLoading,
     decodeJWTPayload,
-  } = usePageDataManager(roomId);
+  } = usePageDataManager(pageId);
 
   // 2. 사용자 정보 처리 (단순화)
   const [userInfo] = useState(() => {
@@ -199,7 +199,7 @@ function NoCodeEditor({ pageId }) {
 
   // 자동저장 훅
   const { isSaving, lastSaved, saveError, saveCount, saveNow } = useAutoSave(
-    roomId,
+    pageId,
     components,
     2000
   );
@@ -349,7 +349,7 @@ function NoCodeEditor({ pageId }) {
       <PreviewModal
         isOpen={interaction.isPreviewOpen}
         onClose={interaction.handlePreviewClose}
-        pageId={roomId}
+        pageId={pageId}
         components={components}
         canvasHeight={canvasHeight}
       />
@@ -365,7 +365,7 @@ function NoCodeEditor({ pageId }) {
       <InviteModal
         isOpen={interaction.isInviteOpen}
         onClose={interaction.handleInviteClose}
-        pageId={roomId}
+        pageId={pageId}
       />
     </div>
   );

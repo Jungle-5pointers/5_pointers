@@ -17,13 +17,19 @@ VITE_API_URL_PRODUCTION=http://Jungle-backend-prod-env.eba-ftfwcygq.ap-northeast
 VITE_WEBSOCKET_URL_PRODUCTION=ws://your-yjs-server-url:3003
 ```
 
-### 백엔드 환경 변수 (Elastic Beanstalk에서 설정됨)
+### 백엔드 환경 변수 (GitHub Secrets에 설정 필요)
 ```
-DB_HOST=jungle-db5.cluster-chiyuym88mcj.ap-northeast-2.rds.amazonaws.com
-DB_USERNAME=jungle_user
+DB_HOST=jungle-db5-instance-1.chiyuym88mcj.ap-northeast-2.rds.amazonaws.com
+DB_PORT=3306
+DB_USERNAME=admin
 DB_PASSWORD=Jungle5pointers2025!
-DB_DATABASE=jungle_db
+DB_DATABASE=fivepointers
 JWT_SECRET=jungle-5pointers-super-secret-key-2025
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+KAKAO_REST_API_KEY=your-kakao-rest-api-key
+KAKAO_CLIENT_SECRET=your-kakao-client-secret
+KAKAO_JAVASCRIPT_KEY=your-kakao-javascript-key
 ```
 
 ## 🔧 GitHub Secrets 설정 방법

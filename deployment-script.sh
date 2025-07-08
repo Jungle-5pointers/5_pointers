@@ -62,11 +62,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DB_HOST=${RDS_ENDPOINT}
-      - DB_PORT=3306
-      - DB_USERNAME=admin
-      - DB_PASSWORD=Jungle5pointers2025!
-      - DB_DATABASE=fivepointers
+      - DB_HOST=${DB_HOST:-jungle-db5-instance-1.chiyuym88mcj.ap-northeast-2.rds.amazonaws.com}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USERNAME=${DB_USERNAME:-admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE:-fivepointers}
     command: >
       sh -c "
         npm install &&

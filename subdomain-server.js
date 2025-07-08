@@ -4,10 +4,22 @@ const fs = require('fs');
 const axios = require('axios');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-// 백엔드 API URL 설정
-const API_BASE_URL = process.env.API_BASE_URL || 'https://api.pagecube.net/api';
+// Enable CORS for cross-origin requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// 백엔드 API URL 설정 (AWS Elastic Beanstalk 엔드포인트)
+const API_BASE_URL = process.env.API_BASE_URL || 'https://jungle-backend-prod-env.eba-ftfwcygq.ap-northeast-2.elasticbeanstalk.com/api';
 
 // 배포된 사이트들이 저장될 디렉토리
 const deployedSitesPath = path.join(__dirname, 'deployed-sites');
@@ -16,6 +28,18 @@ const deployedSitesPath = path.join(__dirname, 'deployed-sites');
 if (!fs.existsSync(deployedSitesPath)) {
   fs.mkdirSync(deployedSitesPath, { recursive: true });
 }
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    service: 'PageCube Subdomain Server',
+    version: '1.0.0',
+    port: PORT,
+    api_base_url: API_BASE_URL
+  });
+});
 
 // 서브도메인 처리 미들웨어
 app.use(async (req, res, next) => {

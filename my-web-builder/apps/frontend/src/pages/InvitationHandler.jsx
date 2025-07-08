@@ -14,7 +14,7 @@ import { API_BASE_URL } from '../config';
  * 4. 로그인 된 경우: 초대 수락 API 호출 후 에디터로 이동
  */
 function InvitationHandler() {
-  const { invitationToken } = useParams();
+  const { inviteCode } = useParams();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ function InvitationHandler() {
   // 초대 정보 조회 (로그인 불필요)
   const fetchInvitationInfo = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/invitations/${invitationToken}`);
+      const response = await fetch(`${API_BASE_URL}/invitations/${inviteCode}`);
       
       if (!response.ok) {
         throw new Error('초대 링크가 유효하지 않거나 만료되었습니다.');
@@ -74,7 +74,7 @@ function InvitationHandler() {
   const acceptInvitation = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/invitations/${invitationToken}/accept`, {
+      const response = await fetch(`${API_BASE_URL}/invitations/${inviteCode}/accept`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -102,7 +102,7 @@ function InvitationHandler() {
   // 메인 로직
   useEffect(() => {
     const handleInvitation = async () => {
-      if (!invitationToken) {
+      if (!inviteCode) {
         setError('유효하지 않은 초대 링크입니다.');
         setLoading(false);
         return;
@@ -142,7 +142,7 @@ function InvitationHandler() {
     };
 
     handleInvitation();
-  }, [invitationToken, navigate]);
+  }, [inviteCode, navigate]);
 
   // 로딩 중일 때
   if (loading && !error) {

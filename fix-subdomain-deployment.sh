@@ -22,11 +22,12 @@ cat >> docker-compose.simple.yml << 'SUBDOMAIN_EOF'
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DB_HOST=${RDS_ENDPOINT}
-      - DB_PORT=3306
-      - DB_USERNAME=admin
-      - DB_PASSWORD=Jungle5pointers2025!
-      - DB_DATABASE=fivepointers
+      - DB_HOST=${DB_HOST:-jungle-db5-instance-1.chiyuym88mcj.ap-northeast-2.rds.amazonaws.com}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USERNAME=${DB_USERNAME:-admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE:-fivepointers}
+      - API_BASE_URL=${API_BASE_URL:-https://jungle-backend-prod-env.eba-ftfwcygq.ap-northeast-2.elasticbeanstalk.com/api}
     command: >
       sh -c "
         npm install &&

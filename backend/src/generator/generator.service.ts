@@ -194,25 +194,37 @@ export class GeneratorService {
    * @returns HTML 문자열
    */
   async generateStaticHTML(components: any[]): Promise<string> {
-    // 반응형 레이아웃을 위한 행 그룹핑
-    const rows = groupComponentsIntoRows(components);
+    console.log('🎨 generateStaticHTML 호출됨, 컴포넌트 수:', components.length);
     
+    const rows = groupComponentsIntoRows(components);
+    console.log('📊 행 그룹핑 결과:', rows.length, '개 행');
+
     // 데스크톱 절대 위치 HTML 생성
     const desktopHTML = components.map(comp => {
-      const style = `position: absolute; left: ${comp.x}px; top: ${comp.y}px;`;
-      return this.renderComponentHTML(comp, style);
-    }).join('');
-    
-    // 모바일 반응형 HTML 생성
-    const mobileHTML = rows.map(row => {
-      const rowComponents = row.map(comp => {
-        const componentStyle = `order: ${Math.floor((comp.x || 0) / 10)}; max-width: 100%; box-sizing: border-box;`;
-        return `<div class="component" style="${componentStyle}">${this.renderComponentHTML(comp, '')}</div>`;
-      }).join('');
-      return `<div class="row-wrapper">${rowComponents}</div>`;
+      const componentHTML = this.renderComponentHTML(comp, '');
+      return `
+        <div class="desktop-absolute-wrapper" style="left: ${comp.x || 0}px; top: ${comp.y || 0}px; width: ${comp.width ? comp.width + 'px' : 'auto'}; height: ${comp.height ? comp.height + 'px' : 'auto'};">
+          ${componentHTML}
+        </div>
+      `;
     }).join('');
 
-    return `
+    // 모바일 반응형 HTML 생성 (PreviewRenderer와 동일한 구조)
+    const mobileHTML = rows.map(row => {
+      const rowContent = row.map(comp => {
+        const componentHTML = this.renderComponentHTML(comp, '');
+        const order = Math.floor((comp.x || 0) / 10);
+        
+        return `
+          <div class="component-wrapper" style="order: ${order}; width: ${comp.width ? comp.width + 'px' : 'auto'};">
+            ${componentHTML}
+          </div>
+        `;
+      }).join('');
+      return `<div class="row-wrapper">${rowContent}</div>`;
+    }).join('');
+
+    const finalHTML = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -220,58 +232,70 @@ export class GeneratorService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>배포된 사이트</title>
         <style>
-/* 위치 보존 반응형 시스템 - 최종 CSS */
+/* === 기본 레이아웃 === */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
-/* 페이지 전체 컨테이너 */
+/* === 페이지 컨테이너: 모든 콘텐츠를 감싸는 최상위 래퍼 === */
 .page-container {
   width: 100%;
   box-sizing: border-box;
-  background: #ffffff;
-  padding: 24px; /* 데스크톱 기본 패딩 */
+  background-color: #ffffff;
 }
 
-/* 데스크톱 절대 위치 모드 */
-.page-container.desktop {
-  position: relative;
-  min-height: 100vh;
-}
-
-/* 데스크톱 절대 위치 래퍼 */
-.desktop-absolute-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-/* 행 래퍼 - 기본은 가로 정렬 */
+/* === 행(Row) 래퍼: 컴포넌트들을 그룹핑하는 단위 === */
 .row-wrapper {
   display: flex;
+  flex-direction: row; /* 데스크톱에서는 기본적으로 가로 배치 */
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 16px;
-  flex-direction: row; /* 명시적으로 가로 정렬 */
+  margin-bottom: 24px; /* 행과 행 사이의 간격 */
 }
 
-/* 개별 컴포넌트 공통 스타일 */
-.component {
-  max-width: 100%;
+/* === 개별 컴포넌트 래퍼 === */
+.component-wrapper {
+  /* [핵심] 사이즈 제어 로직 */
+  max-width: 100%; /* 부모(row-wrapper)의 너비를 절대 넘지 않음 */
   box-sizing: border-box;
 }
 
-/* 모바일 미디어 쿼리 - 768px 이하에서 적용 */
+/* === 반응형 규칙: 모바일 뷰 (768px 이하) === */
 @media (max-width: 768px) {
   .page-container {
-    padding: 16px; /* 모바일에서 더 작은 패딩 */
+    padding: 0 16px; /* 화면 좌우에 16px의 여백을 줌 */
   }
-  
+
   .row-wrapper {
-    flex-direction: column; /* 모바일에서 세로 정렬로 변경 */
-    gap: 12px; /* 모바일에서 더 작은 간격 */
+    flex-direction: column; /* 행을 수직으로 쌓음 */
+    gap: 16px;
+  }
+
+  .component-wrapper {
+    width: 100% !important; /* [핵심] 모바일에서는 모든 컴포넌트 래퍼가 행의 100% 너비를 차지 */
+  }
+
+  /* 래퍼 안의 실제 컴포넌트는 max-width로 제어됨 */
+  .component-wrapper > * {
+      width: 100% !important;
+      max-width: 100%;
+      box-sizing: border-box;
   }
   
   .desktop-absolute-wrapper {
     display: none; /* 모바일에서 데스크톱 레이아웃 숨김 */
   }
+}
+
+/* === 데스크톱 절대 위치 모드용 === */
+.page-container.desktop {
+  position: relative;
+  padding: 24px;
+}
+
+.desktop-absolute-wrapper {
+  position: absolute;
 }
 
 /* 데스크톱에서 모바일 레이아웃 숨김 */
@@ -280,27 +304,21 @@ export class GeneratorService {
     display: none;
   }
 }
-
-body {
-  margin: 0;
-  font-family: Inter, sans-serif;
-  background: #f9fafb;
-}
         </style>
       </head>
       <body>
-        <div class="page-container">
-          <!-- 데스크톱 절대 위치 레이아웃 -->
-          <div class="desktop-absolute-wrapper">
-            ${desktopHTML}
-          </div>
-          
-          <!-- 모바일 반응형 레이아웃 -->
+        <div class="page-container desktop">
+          ${desktopHTML}
+        </div>
+        <div class="page-container mobile">
           ${mobileHTML}
         </div>
       </body>
       </html>
     `;
+    
+    console.log('✅ HTML 생성 완료, 길이:', finalHTML.length);
+    return finalHTML;
   }
   
   /**

@@ -29,6 +29,8 @@ import {
 
 function NoCodeEditor({ pageId }) {
   const { roomId } = useParams();
+  console.log('🔍 NoCodeEditor roomId:', roomId);
+  console.log('🔍 NoCodeEditor pageId:', pageId);
   const canvasRef = useRef();
   const containerRef = useRef();
   const [components, setComponents] = useState([]);
@@ -248,7 +250,7 @@ function NoCodeEditor({ pageId }) {
         onPreviewOpen={interaction.handlePreviewOpen}
         onTemplateSaveOpen={interaction.handleTemplateSaveOpen}
         onInviteOpen={interaction.handleInviteOpen}
-        roomId={roomId}
+        roomId={roomId || pageId}
         isAdmin={true}
       />
 
@@ -269,7 +271,7 @@ function NoCodeEditor({ pageId }) {
             e.dataTransfer.setData('componentType', type);
           }}
           components={components}
-          roomId={roomId}
+          roomId={roomId || pageId}
           isOpen={interaction.isLibraryOpen}
           onToggle={interaction.handleLibraryToggle}
           isReady={isConnected}

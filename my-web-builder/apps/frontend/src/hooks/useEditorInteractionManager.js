@@ -58,6 +58,13 @@ export function useEditorInteractionManager(designMode, setDesignMode) {
     async (newDesignMode, roomId) => {
       if (newDesignMode === designMode) return;
 
+      console.log(`🔍 roomId 확인: ${roomId}`);
+      if (!roomId) {
+        console.error('❌ roomId가 undefined입니다!');
+        alert('roomId가 설정되지 않았습니다.');
+        return;
+      }
+
       // 변경 확인 메시지
       const confirmChange = window.confirm(
         `편집 기준을 "${newDesignMode === 'desktop' ? '데스크탑' : '모바일'}"으로 변경하시겠습니까?\n\n이 변경사항은 저장됩니다.`

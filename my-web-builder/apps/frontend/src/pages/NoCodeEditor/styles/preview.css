@@ -1,54 +1,68 @@
-/* 위치 보존 반응형 시스템 - 최종 CSS */
+/* === 기본 레이아웃 === */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
-/* 페이지 전체 컨테이너 */
+/* === 페이지 컨테이너: 모든 콘텐츠를 감싸는 최상위 래퍼 === */
 .page-container {
   width: 100%;
   box-sizing: border-box;
-  background: #ffffff;
-  padding: 24px; /* 데스크톱 기본 패딩 */
+  background-color: #ffffff;
 }
 
-/* 데스크톱 절대 위치 모드 */
-.page-container.desktop {
-  position: relative;
-  min-height: 100vh;
-}
-
-/* 데스크톱 절대 위치 래퍼 */
-.desktop-absolute-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-/* 행 래퍼 - 기본은 가로 정렬 */
+/* === 행(Row) 래퍼: 컴포넌트들을 그룹핑하는 단위 === */
 .row-wrapper {
   display: flex;
+  flex-direction: row; /* 데스크톱에서는 기본적으로 가로 배치 */
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 16px;
-  flex-direction: row; /* 명시적으로 가로 정렬 */
+  margin-bottom: 24px; /* 행과 행 사이의 간격 */
 }
 
-/* 개별 컴포넌트 공통 스타일 */
-.component {
-  max-width: 100%;
+/* === 개별 컴포넌트 래퍼 === */
+.component-wrapper {
+  /* [핵심] 사이즈 제어 로직 */
+  max-width: 100%; /* 부모(row-wrapper)의 너비를 절대 넘지 않음 */
   box-sizing: border-box;
 }
 
-/* 모바일 미디어 쿼리 - 768px 이하에서 적용 */
+/* === 반응형 규칙: 모바일 뷰 (768px 이하) === */
 @media (max-width: 768px) {
   .page-container {
-    padding: 16px; /* 모바일에서 더 작은 패딩 */
+    padding: 0 16px; /* 화면 좌우에 16px의 여백을 줌 */
   }
-  
+
   .row-wrapper {
-    flex-direction: column; /* 모바일에서 세로 정렬로 변경 */
-    gap: 12px; /* 모바일에서 더 작은 간격 */
+    flex-direction: column; /* 행을 수직으로 쌓음 */
+    gap: 16px;
+  }
+
+  .component-wrapper {
+    width: 100% !important; /* [핵심] 모바일에서는 모든 컴포넌트 래퍼가 행의 100% 너비를 차지 */
+  }
+
+  /* 래퍼 안의 실제 컴포넌트는 max-width로 제어됨 */
+  .component-wrapper > * {
+      width: 100% !important;
+      max-width: 100%;
+      box-sizing: border-box;
   }
 }
 
-/* 빈 페이지 스타일 */
+/* === 데스크톱 절대 위치 모드용 === */
+.page-container.desktop {
+  position: relative;
+  padding: 24px;
+}
+
+.desktop-absolute-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* === 기존 호환성 스타일 === */
 .empty-page {
   display: flex;
   align-items: center;
@@ -63,54 +77,4 @@
 .empty-page-icon {
   font-size: 48px;
   margin-bottom: 16px;
-}
-
-/* 기존 호환성 스타일 */
-.preview-container {
-  position: relative;
-  margin: 0 auto;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.preview-container.mobile {
-  width: 375px;
-  min-height: 667px;
-}
-
-.preview-container.desktop {
-  width: 1920px;
-  min-height: 1080px;
-}
-
-.preview-component {
-  position: absolute;
-  pointer-events: auto;
-}
-
-.preview-component.text {
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-.preview-component.button {
-  display: inline-block;
-}
-
-.preview-component.image {
-  max-width: 100%;
-  height: auto;
-}
-
-.editor-canvas {
-  position: relative;
-  background: #ffffff;
-  margin: 0 auto;
-  overflow: visible;
-}
-
-.editor-component {
-  position: absolute;
-  pointer-events: auto;
-  user-select: none;
 }

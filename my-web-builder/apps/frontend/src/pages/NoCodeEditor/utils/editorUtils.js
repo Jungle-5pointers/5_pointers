@@ -659,10 +659,8 @@ export function groupComponentsIntoRows(components) {
     }
   }
   
-  // 각 행 내에서 X 좌표 기준으로 정렬
-  return rows.map(row => 
-    row.sort((a, b) => (a.x || 0) - (b.x || 0))
-  );
+  // 행 내부 정렬은 order 속성이 담당하므로 제거
+  return rows;
 }
 
 // 스냅라인 계산 함수 (정렬, 간격, 그리드, 중앙선 스냅 모두 지원)

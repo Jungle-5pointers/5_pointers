@@ -4,6 +4,53 @@ import { Repository } from 'typeorm';
 import { DeployDto } from './dto/deploy.dto';
 import { Pages, PageStatus } from '../users/entities/pages.entity';
 
+// 컴포넌트를 행으로 그룹핑하는 공유 함수
+function groupComponentsIntoRows(components: any[]): any[][] {
+  if (!components || components.length === 0) {
+    return [];
+  }
+
+  // Y 좌표 기준으로 정렬
+  const sortedComponents = [...components].sort((a, b) => (a.y || 0) - (b.y || 0));
+  
+  const rows: any[][] = [];
+  
+  for (const component of sortedComponents) {
+    const compTop = component.y || 0;
+    const compBottom = compTop + (component.height || 50);
+    
+    // 현재 컴포넌트와 수직으로 겹치는 기존 행 찾기
+    let targetRow = null;
+    
+    for (const row of rows) {
+      // 현재 행의 모든 컴포넌트와 겹치는지 확인
+      const hasOverlap = row.some(existingComp => {
+        const existingTop = existingComp.y || 0;
+        const existingBottom = existingTop + (existingComp.height || 50);
+        
+        // 수직 겹침 확인: Math.max(top1, top2) < Math.min(bottom1, bottom2)
+        return Math.max(compTop, existingTop) < Math.min(compBottom, existingBottom);
+      });
+      
+      if (hasOverlap) {
+        targetRow = row;
+        break;
+      }
+    }
+    
+    if (targetRow) {
+      // 기존 행에 추가
+      targetRow.push(component);
+    } else {
+      // 새로운 행 생성
+      rows.push([component]);
+    }
+  }
+  
+  // 행 내부 정렬은 order 속성이 담당하므로 제거
+  return rows;
+}
+
 @Injectable()
 export class GeneratorService {
   constructor(
@@ -142,28 +189,27 @@ export class GeneratorService {
   }
 
   /**
-   * 컴포넌트 배열을 정적 HTML로 변환
+   * 컴포넌트 배열을 정적 HTML로 변환 (order 속성 적용)
    * @param components - 컴포넌트 배열
    * @returns HTML 문자열
    */
   async generateStaticHTML(components: any[]): Promise<string> {
-    const componentHTML = components.map(comp => {
-      const style = `position: absolute; left: ${comp.x}px; top: ${comp.y}px; color: ${comp.props.color}; font-size: ${comp.props.fontSize}px;`;
-      
-      switch (comp.type) {
-        case 'button':
-          return `<button style="${style} background: ${comp.props.bg}; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">${comp.props.text}</button>`;
-        case 'text':
-          return `<div style="${style}">${comp.props.text}</div>`;
-        case 'link':
-          return `<a href="${comp.props.url}" style="${style} text-decoration: underline;">${comp.props.text}</a>`;
-        case 'attend':
-          return `<button style="${style} background: ${comp.props.bg}; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">${comp.props.text}</button>`;
-        case 'image':
-          return `<img src="${comp.props.src}" style="${style} width: ${comp.props.width}px; height: ${comp.props.height}px;" alt="${comp.props.alt || ''}" />`;
-        default:
-          return `<div style="${style}">${comp.props.text || ''}</div>`;
-      }
+    // 반응형 레이아웃을 위한 행 그룹핑
+    const rows = groupComponentsIntoRows(components);
+    
+    // 데스크톱 절대 위치 HTML 생성
+    const desktopHTML = components.map(comp => {
+      const style = `position: absolute; left: ${comp.x}px; top: ${comp.y}px;`;
+      return this.renderComponentHTML(comp, style);
+    }).join('');
+    
+    // 모바일 반응형 HTML 생성
+    const mobileHTML = rows.map(row => {
+      const rowComponents = row.map(comp => {
+        const componentStyle = `order: ${Math.floor((comp.x || 0) / 10)}; max-width: 100%; box-sizing: border-box;`;
+        return `<div class="component" style="${componentStyle}">${this.renderComponentHTML(comp, '')}</div>`;
+      }).join('');
+      return `<div class="row-wrapper">${rowComponents}</div>`;
     }).join('');
 
     return `
@@ -171,24 +217,111 @@ export class GeneratorService {
       <html>
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>배포된 사이트</title>
         <style>
-          body { 
-            margin: 0; 
-            padding: 20px; 
-            font-family: Inter, sans-serif; 
-            position: relative; 
-            min-height: 100vh; 
-            background: #f9fafb;
-          }
+/* 위치 보존 반응형 시스템 - 최종 CSS */
+
+/* 페이지 전체 컨테이너 */
+.page-container {
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  padding: 24px; /* 데스크톱 기본 패딩 */
+}
+
+/* 데스크톱 절대 위치 모드 */
+.page-container.desktop {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* 데스크톱 절대 위치 래퍼 */
+.desktop-absolute-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 행 래퍼 - 기본은 가로 정렬 */
+.row-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-direction: row; /* 명시적으로 가로 정렬 */
+}
+
+/* 개별 컴포넌트 공통 스타일 */
+.component {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 모바일 미디어 쿼리 - 768px 이하에서 적용 */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px; /* 모바일에서 더 작은 패딩 */
+  }
+  
+  .row-wrapper {
+    flex-direction: column; /* 모바일에서 세로 정렬로 변경 */
+    gap: 12px; /* 모바일에서 더 작은 간격 */
+  }
+  
+  .desktop-absolute-wrapper {
+    display: none; /* 모바일에서 데스크톱 레이아웃 숨김 */
+  }
+}
+
+/* 데스크톱에서 모바일 레이아웃 숨김 */
+@media (min-width: 769px) {
+  .row-wrapper {
+    display: none;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #f9fafb;
+}
         </style>
       </head>
       <body>
-        ${componentHTML}
+        <div class="page-container">
+          <!-- 데스크톱 절대 위치 레이아웃 -->
+          <div class="desktop-absolute-wrapper">
+            ${desktopHTML}
+          </div>
+          
+          <!-- 모바일 반응형 레이아웃 -->
+          ${mobileHTML}
+        </div>
       </body>
       </html>
     `;
   }
-}
-
   
+  /**
+   * 개별 컴포넌트를 HTML로 렌더링
+   */
+  private renderComponentHTML(comp: any, additionalStyle: string = ''): string {
+    const baseStyle = `color: ${comp.props?.color || '#000'}; font-size: ${comp.props?.fontSize || 16}px; ${additionalStyle}`;
+    
+    switch (comp.type) {
+      case 'button':
+        return `<button style="${baseStyle} background: ${comp.props?.bg || '#007bff'}; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">${comp.props?.text || 'Button'}</button>`;
+      case 'text':
+        return `<div style="${baseStyle}">${comp.props?.text || 'Text'}</div>`;
+      case 'link':
+        return `<a href="${comp.props?.url || '#'}" style="${baseStyle} text-decoration: underline;">${comp.props?.text || 'Link'}</a>`;
+      case 'attend':
+        return `<button style="${baseStyle} background: ${comp.props?.bg || '#28a745'}; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">${comp.props?.text || 'Attend'}</button>`;
+      case 'image':
+        return `<img src="${comp.props?.src || ''}" style="${baseStyle} width: ${comp.width || 200}px; height: ${comp.height || 150}px;" alt="${comp.props?.alt || ''}" />`;
+      default:
+        return `<div style="${baseStyle}">${comp.props?.text || ''}</div>`;
+    }
+  }
+}

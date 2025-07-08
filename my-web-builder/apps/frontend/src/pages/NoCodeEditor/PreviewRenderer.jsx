@@ -109,13 +109,66 @@ const PreviewRenderer = ({ pageContent, forcedViewport }) => {
   };
 
   if (isMobileMode) {
-    // 모바일: 세로 정렬 레이아웃
+    // 모바일: order 속성을 이용한 위치 보존 레이아웃
     const rows = groupComponentsIntoRows(pageContent);
     return (
-      <div className="page-container mobile" style={{ padding: '16px' }}>
+      <div className="page-container">
         {rows.map((row, rowIndex) => (
-          <div key={rowIndex} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-            {row.map(renderComponent)}
+          <div key={rowIndex} className="row-wrapper">
+            {row.map(comp => {
+              const componentContent = (() => {
+                switch (comp.type) {
+                  case 'button':
+                    return <ButtonRenderer comp={comp} />;
+                  case 'text':
+                    return <TextRenderer comp={comp} />;
+                  case 'link':
+                    return <LinkRenderer comp={comp} />;
+                  case 'attend':
+                    return <AttendRenderer comp={comp} />;
+                  case 'map':
+                    return <MapView {...comp.props} />;
+                  case 'dday':
+                    return <DdayRenderer comp={comp} />;
+                  case 'weddingContact':
+                    return <WeddingContactRenderer comp={comp} />;
+                  case 'weddingInvite':
+                    return <WeddingInviteRenderer comp={comp} />;
+                  case 'image':
+                    return <ImageRenderer comp={comp} />;
+                  case 'gridGallery':
+                    return <GridGalleryRenderer comp={comp} />;
+                  case 'slideGallery':
+                    return <SlideGalleryRenderer comp={comp} />;
+                  case 'mapInfo':
+                    return <MapInfoRenderer comp={comp} />;
+                  case 'calendar':
+                    return <CalendarRenderer comp={comp} />;
+                  case 'bankAccount':
+                    return <BankAccountRenderer comp={comp} />;
+                  case 'comment':
+                    return <CommentRenderer comp={comp} />;
+                  default:
+                    return null;
+                }
+              })();
+              
+              if (!componentContent) return null;
+              
+              return (
+                <div
+                  key={comp.id}
+                  className="component"
+                  style={{
+                    order: Math.floor((comp.x || 0) / 10),
+                    width: comp.width ? `${comp.width}px` : 'auto',
+                    height: comp.height ? `${comp.height}px` : 'auto',
+                  }}
+                >
+                  {componentContent}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>

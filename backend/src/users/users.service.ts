@@ -1275,4 +1275,15 @@ export class UsersService {
 
     return this.pagesRepository.save(page);
   }
+
+  // 사용자 권한 업데이트 (개발용)
+  async updateUserRole(email: string, role: 'USER' | 'ADMIN'): Promise<Users> {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    user.role = role;
+    return this.usersRepository.save(user);
+  }
 }

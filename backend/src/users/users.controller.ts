@@ -249,4 +249,12 @@ export class UsersController {
   ) {
     return this.usersService.updateDesignMode(pageId, body.designMode);
   }
+
+  // 관리자 권한 업데이트 API (개발용)
+  @Patch('update-role')
+  async updateUserRole(
+    @Body() body: { email: string; role: 'USER' | 'ADMIN' },
+  ) {
+    return this.usersService.updateUserRole(body.email, body.role);
+  }
 }

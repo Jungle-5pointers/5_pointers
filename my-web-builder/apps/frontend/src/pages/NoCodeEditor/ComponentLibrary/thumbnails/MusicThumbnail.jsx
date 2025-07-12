@@ -10,7 +10,7 @@ function MusicThumbnail() {
       border: '1px solid #e5e7eb',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
     }}>
       {/* 음악 재생 버튼 */}
       <div style={{

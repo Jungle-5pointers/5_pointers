@@ -42,7 +42,8 @@ function ComponentCard({ component, onDragStart }) {
         color: '#374151',
         marginBottom: 10, 
         textAlign: 'center',
-        flexShrink: 0
+        flexShrink: 0,
+        whiteSpace: 'nowrap'
       }}>
         {component.label}
       </div>

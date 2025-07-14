@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 모바일 최적화 CSS */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* 가로 스크롤 방지 */
+}
+
+/* 모바일 전용 스타일 */
+@media (max-width: 768px) {
+  .page-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* 스케일된 컴포넌트들이 화면을 벗어나지 않도록 */
+  .component-wrapper {
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow: visible; /* Transform된 내용이 보이도록 */
+  }
+}

@@ -37,6 +37,9 @@ export class Pages {
   @Column({ type: 'json', nullable: true })
   content: any;
 
+  @Column({ type: 'enum', enum: ['desktop', 'mobile'], default: 'desktop' })
+  editingMode: 'desktop' | 'mobile'; // 편집 기준 (데스크톱/모바일)
+
   @Column({
     type: 'enum',
     enum: PageStatus,

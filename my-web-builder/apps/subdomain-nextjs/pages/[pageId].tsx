@@ -81,6 +81,7 @@ const DynamicPageRenderer = ({
 }) => {
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [scaleFactor, setScaleFactor] = useState(1);
 
   useEffect(() => {
     setIsMounted(true);
@@ -88,6 +89,16 @@ const DynamicPageRenderer = ({
     const checkViewport = () => {
       const isMobile = window.innerWidth <= 768;
       setIsMobileView(isMobile);
+      
+      // 모바일에서만 375px 기준으로 스케일 계산
+      if (isMobile) {
+        const currentWidth = window.innerWidth;
+        const baseWidth = 375;
+        const newScaleFactor = currentWidth / baseWidth;
+        setScaleFactor(newScaleFactor);
+      } else {
+        setScaleFactor(1);
+      }
     };
 
     checkViewport();
@@ -175,7 +186,8 @@ const DynamicPageRenderer = ({
       <Head>
         <title>{subdomain ? `${subdomain} - My Web Builder` : 'My Web Builder'}</title>
         <meta name="description" content={`${subdomain || pageId}에서 만든 웹사이트입니다.`} />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="format-detection" content="telephone=no" />
         <link rel="icon" href="/ddukddak-logo2.png" />
       </Head>
       
@@ -188,15 +200,19 @@ const DynamicPageRenderer = ({
           alignItems: isMobileView ? 'center' : 'unset',
           justifyContent: isMobileView ? 'flex-start' : 'unset',
           width: '100%',
+          maxWidth: '100vw',
           minHeight: '100vh',
           background: '#ffffff',
-          overflowX: isMobileView ? 'hidden' : 'auto'
+          overflowX: 'hidden', // 항상 가로 스크롤 방지
+          padding: isMobileView ? '0' : 'unset'
         }}
       >
         <div style={{
           position: 'relative',
           zIndex: 1,
           minHeight: '100vh',
+          width: '100%',
+          maxWidth: '100%',
           width: '100%',
           display: isMobileView ? 'flex' : 'block',
           flexDirection: isMobileView ? 'column' : 'unset',
@@ -224,10 +240,14 @@ const DynamicPageRenderer = ({
                     const originalHeight = comp.height || defaultSize.height;
                     
                     return (
-                      <div key={comp.id} style={{
-                        width: `min(${originalWidth}px, 90vw)`,
+                      <div key={comp.id} className="component-wrapper" style={{
+                        transform: `scale(${scaleFactor})`,
+                        transformOrigin: 'top center',
+                        width: `${originalWidth}px`,
                         height: `${originalHeight}px`,
-                        marginBottom: '16px'
+                        marginBottom: `${16 * scaleFactor}px`,
+                        display: 'flex',
+                        justifyContent: 'center'
                       }}>
                         <RendererComponent
                           {...comp.props}

@@ -381,6 +381,7 @@ export class UsersService {
     if (!user) throw new Error('User not found');
 
     let content = null;
+    let editingMode: 'desktop' | 'mobile' = 'desktop'; // 기본값
 
     // templateId가 있으면 템플릿에서 content 가져오기
     if (body.templateId) {
@@ -390,6 +391,9 @@ export class UsersService {
         where: { id: body.templateId },
       });
       if (template && template.content) {
+        // editingMode 가져오기
+        editingMode = template.editingMode || 'desktop';
+        
         // 컴포넌트 ID 재발급 및 구조 통일
         let componentsArr = Array.isArray(template.content)
           ? template.content
@@ -412,6 +416,7 @@ export class UsersService {
       subdomain: body.subdomain || `page-${Date.now()}`,
       title: body.title || 'Untitled',
       content: content,
+      editingMode: editingMode, // editingMode 추가
       status: PageStatus.DRAFT,
     });
 

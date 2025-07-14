@@ -281,6 +281,43 @@ export class UsersController {
     return this.usersService.createSlido(pageId, componentId, slidoData);
   }
 
+  // 참석 의사 조회
+  @Get('pages/:pageId/attendance/:componentId')
+  async getAttendance(
+    @Param('pageId') pageId: string,
+    @Param('componentId') componentId: string,
+  ) {
+    return this.usersService.getAttendance(pageId, componentId);
+  }
+
+  // 참석 의사 제출
+  @Post('pages/:pageId/attendance/:componentId')
+  async createAttendance(
+    @Param('pageId') pageId: string,
+    @Param('componentId') componentId: string,
+    @Body() attendanceData: {
+      attendeeName: string;
+      attendeeCount: number;
+      guestSide: string;
+      contact: string;
+      companionCount: number;
+      mealOption: string;
+      privacyConsent: boolean;
+    },
+  ) {
+    return this.usersService.createAttendance(pageId, componentId, attendanceData);
+  }
+
+  // 페이지 전체 참석 의사 전달 데이터 조회 (대시보드용)
+  @UseGuards(JwtAuthGuard)
+  @Get('pages/:pageId/attendance-summary')
+  async getAttendanceSummary(
+    @Request() req,
+    @Param('pageId') pageId: string,
+  ) {
+    return this.usersService.getAttendanceSummary(req.user.userId, pageId);
+  }
+
   // 🔄 새로고침 복구 시스템 API
   @Get('pages/room/:roomId/content')
   async getPageContent(@Param('roomId') roomId: string) {

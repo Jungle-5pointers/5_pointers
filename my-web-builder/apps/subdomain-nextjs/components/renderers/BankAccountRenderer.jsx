@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { useResponsive } from '../../hooks/useResponsive';
 
 function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', setModalOpen }) {
   const { title, groomSide, brideSide, backgroundColor } = comp.props;
   const [groomModalOpen, setGroomModalOpen] = useState(false);
   const [brideModalOpen, setBrideModalOpen] = useState(false);
-  const { isLiveMode, responsiveWidth, responsiveHeight } = useResponsive(mode, comp.width, comp.height);
   const ref = useRef();
 
   useEffect(() => {
@@ -30,8 +28,11 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
     alert(`${name}의 계좌번호가 복사되었습니다.`);
   };
 
-  const renderAccountInfo = (person, label) => {
+  const renderAccountInfo = (person, label, isBrideSide = false) => {
     if (!person.enabled && label !== '신랑' && label !== '신부') return null;
+
+    // 신부측인지 확인 (신부, 신부 아버지, 신부 어머니)
+    const isForBride = isBrideSide || label.includes('신부');
 
     return (
       <div style={{
@@ -72,14 +73,16 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
           <button
             style={{
               padding: 'clamp(6px, 2vw, 8px) clamp(12px, 4vw, 16px)',
-              background: 'linear-gradient(135deg, #87CEEB 0%, #6CB4D8 100%)',
+              background: isForBride ? '#F4C2C2' : '#87CEEB',
               color: '#FFFFFF',
               borderRadius: '6px',
               fontSize: 'clamp(12px, 3vw, 14px)',
               fontWeight: '600',
               fontFamily: 'Montserrat, sans-serif',
               border: 'none',
-              boxShadow: '0 2px 8px rgba(135, 206, 235, 0.3)',
+              boxShadow: isForBride 
+                ? '0 2px 8px rgba(244, 194, 194, 0.3)'
+                : '0 2px 8px rgba(135, 206, 235, 0.3)',
               transition: 'all 0.2s ease',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
@@ -90,14 +93,24 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
               copyToClipboard(person.account, person.name);
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #98D7F0 0%, #7BC0E0 100%)';
+              if (isForBride) {
+                e.target.style.background = '#F8D4D4';
+                e.target.style.boxShadow = '0 4px 12px rgba(244, 194, 194, 0.4)';
+              } else {
+                e.target.style.background = '#98D7F0';
+                e.target.style.boxShadow = '0 4px 12px rgba(135, 206, 235, 0.4)';
+              }
               e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 4px 12px rgba(135, 206, 235, 0.4)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, #87CEEB 0%, #6CB4D8 100%)';
+              if (isForBride) {
+                e.target.style.background = '#F4C2C2';
+                e.target.style.boxShadow = '0 2px 8px rgba(244, 194, 194, 0.3)';
+              } else {
+                e.target.style.background = '#87CEEB';
+                e.target.style.boxShadow = '0 2px 8px rgba(135, 206, 235, 0.3)';
+              }
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 2px 8px rgba(135, 206, 235, 0.3)';
             }}
           >
             복사
@@ -166,12 +179,12 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
           </div>
           <div style={{ padding: 'clamp(1rem, 4vw, 1.5rem)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px, 2vw, 12px)' }}>
-              {title.includes('신랑') && sideData?.groom && renderAccountInfo(sideData.groom, '신랑')}
-              {title.includes('신랑') && sideData?.groomFather?.enabled && renderAccountInfo(sideData.groomFather, '신랑 아버지')}
-              {title.includes('신랑') && sideData?.groomMother?.enabled && renderAccountInfo(sideData.groomMother, '신랑 어머니')}
-              {title.includes('신부') && sideData?.bride && renderAccountInfo(sideData.bride, '신부')}
-              {title.includes('신부') && sideData?.brideFather?.enabled && renderAccountInfo(sideData.brideFather, '신부 아버지')}
-              {title.includes('신부') && sideData?.brideMother?.enabled && renderAccountInfo(sideData.brideMother, '신부 어머니')}
+              {title.includes('신랑') && sideData?.groom && renderAccountInfo(sideData.groom, '신랑', false)}
+              {title.includes('신랑') && sideData?.groomFather?.enabled && renderAccountInfo(sideData.groomFather, '신랑 아버지', false)}
+              {title.includes('신랑') && sideData?.groomMother?.enabled && renderAccountInfo(sideData.groomMother, '신랑 어머니', false)}
+              {title.includes('신부') && sideData?.bride && renderAccountInfo(sideData.bride, '신부', true)}
+              {title.includes('신부') && sideData?.brideFather?.enabled && renderAccountInfo(sideData.brideFather, '신부 아버지', true)}
+              {title.includes('신부') && sideData?.brideMother?.enabled && renderAccountInfo(sideData.brideMother, '신부 어머니', true)}
             </div>
           </div>
         </div>
@@ -184,7 +197,7 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
     <div
       ref={ref}
       style={{
-        width: isLiveMode ? responsiveWidth : '100%',
+        width: '100%',
         padding: '12px',
         borderRadius: 0,
         border: '1px solid #e5e7eb',
@@ -217,7 +230,7 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
           style={{
             width: '100%',
             padding: '16px 24px',
-            background: 'linear-gradient(135deg, #87CEEB 0%, #87CEEB 50%, #6CB4D8 100%)',
+            background: '#87CEEB',
             color: '#FFFFFF',
             borderRadius: '8px',
             fontWeight: '600',
@@ -236,12 +249,12 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
             setGroomModalOpen(true);
           }}
           onMouseEnter={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #98D7F0 0%, #98D7F0 50%, #7BC0E0 100%)';
+            e.target.style.background = '#98D7F0';
             e.target.style.transform = 'translateY(-2px)';
             e.target.style.boxShadow = '0 8px 24px rgba(135, 206, 235, 0.4)';
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #87CEEB 0%, #87CEEB 50%, #6CB4D8 100%)';
+            e.target.style.background = '#87CEEB';
             e.target.style.transform = 'translateY(0)';
             e.target.style.boxShadow = '0 4px 16px rgba(135, 206, 235, 0.3)';
           }}
@@ -258,12 +271,12 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
           style={{
             width: '100%',
             padding: '16px 24px',
-            background: 'linear-gradient(135deg, #D8BFD8 0%, #C8A2C8 50%, #B794B7 100%)',
+            background: '#F4C2C2',
             color: '#FFFFFF',
             borderRadius: '8px',
             fontWeight: '600',
-            border: '1px solid rgba(216, 191, 216, 0.3)',
-            boxShadow: '0 4px 16px rgba(216, 191, 216, 0.3)',
+            border: '1px solid rgba(244, 194, 194, 0.3)',
+            boxShadow: '0 4px 16px rgba(244, 194, 194, 0.3)',
             transition: 'all 0.3s ease',
             display: 'flex',
             alignItems: 'center',
@@ -277,14 +290,14 @@ function BankAccountRenderer({ comp, isEditor = false, onUpdate, mode = 'live', 
             setBrideModalOpen(true);
           }}
           onMouseEnter={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #E6D3E6 0%, #D4B8D4 50%, #C29FC2 100%)';
+            e.target.style.background = '#F8D4D4';
             e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 24px rgba(216, 191, 216, 0.4)';
+            e.target.style.boxShadow = '0 8px 24px rgba(244, 194, 194, 0.4)';
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #D8BFD8 0%, #C8A2C8 50%, #B794B7 100%)';
+            e.target.style.background = '#F4C2C2';
             e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 16px rgba(216, 191, 216, 0.3)';
+            e.target.style.boxShadow = '0 4px 16px rgba(244, 194, 194, 0.3)';
           }}
         >
           <svg style={{ width: '20px', height: '20px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">

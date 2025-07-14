@@ -603,6 +603,153 @@ export class UsersService {
     };
   }
 
+  // 참석 의사 조회
+  async getAttendance(pageId: string, componentId: string): Promise<any[]> {
+    const attendances = await this.submissionsRepository.find({
+      where: {
+        pageId: pageId,
+        component_id: componentId,
+      },
+      order: { createdAt: 'DESC' },
+    });
+    return attendances.map((attendance) => ({
+      id: attendance.id,
+      attendeeName: attendance.data.attendeeName,
+      attendeeCount: attendance.data.attendeeCount,
+      guestSide: attendance.data.guestSide,
+      contact: attendance.data.contact,
+      companionCount: attendance.data.companionCount,
+      mealOption: attendance.data.mealOption,
+      privacyConsent: attendance.data.privacyConsent,
+      createdAt: attendance.createdAt,
+    }));
+  }
+
+  // 참석 의사 제출
+  async createAttendance(
+    pageId: string,
+    componentId: string,
+    attendanceData: {
+      attendeeName: string;
+      attendeeCount: number;
+      guestSide: string;
+      contact: string;
+      companionCount: number;
+      mealOption: string;
+      privacyConsent: boolean;
+    },
+  ): Promise<any> {
+    // 기본 검증
+    if (!attendanceData.attendeeName?.trim()) {
+      throw new Error('참석자 성함은 필수입니다.');
+    }
+    if (!attendanceData.guestSide || !['신부측', '신랑측'].includes(attendanceData.guestSide)) {
+      throw new Error('참석자 구분을 선택해주세요.');
+    }
+    if (!attendanceData.privacyConsent) {
+      throw new Error('개인정보 수집 및 이용에 동의해야 합니다.');
+    }
+    if (attendanceData.attendeeCount < 1 || attendanceData.attendeeCount > 10) {
+      throw new Error('참석 인원은 1명 이상 10명 이하여야 합니다.');
+    }
+
+    const page = await this.pagesRepository.findOne({ where: { id: pageId } });
+    if (!page) throw new Error('Page not found');
+    
+    const submission = this.submissionsRepository.create({
+      page: page,
+      pageId: pageId,
+      component_id: componentId,
+      data: {
+        type: 'attendance',
+        attendeeName: attendanceData.attendeeName.trim(),
+        attendeeCount: attendanceData.attendeeCount,
+        guestSide: attendanceData.guestSide,
+        contact: attendanceData.contact?.trim() || '',
+        companionCount: attendanceData.companionCount || 0,
+        mealOption: attendanceData.mealOption || '',
+        privacyConsent: attendanceData.privacyConsent,
+        submittedAt: new Date().toISOString(),
+      },
+    });
+    
+    const saved = await this.submissionsRepository.save(submission);
+    return {
+      id: saved.id,
+      message: '참석 의사가 성공적으로 전달되었습니다.',
+      data: {
+        attendeeName: saved.data.attendeeName,
+        attendeeCount: saved.data.attendeeCount,
+        guestSide: saved.data.guestSide,
+        mealOption: saved.data.mealOption,
+        createdAt: saved.createdAt,
+      },
+    };
+  }
+
+  // 페이지 전체 참석 의사 전달 데이터 조회 (대시보드용)
+  async getAttendanceSummary(userId: number, pageId: string): Promise<any> {
+    // 페이지 권한 확인
+    const page = await this.getPage(userId, pageId);
+    if (!page) {
+      throw new Error('Page not found or access denied');
+    }
+
+    // 해당 페이지의 모든 제출 데이터 조회 후 필터링
+    // 이전 JSON_EXTRACT 쿼리 대신 메모리 필터링 사용
+    const allSubmissions = await this.submissionsRepository.find({
+      where: { pageId: pageId },
+      order: { createdAt: 'DESC' },
+    });
+
+    // 메모리에서 attendance 타입 필터링
+    // attendance 데이터에만 data.type = 'attendance' 필드가 있음
+    const attendances = allSubmissions.filter(
+      (submission) => submission.data && submission.data.type === 'attendance'
+    );
+
+    console.log(`📊 Attendance Summary for page ${pageId}:`, {
+      totalSubmissions: allSubmissions.length,
+      attendanceRecords: attendances.length,
+      submissionTypes: allSubmissions.map(s => ({ id: s.id, type: s.data?.type || 'no-type', component_id: s.component_id }))
+    });
+
+    // 참석 의사 전달 데이터 정리
+    const attendanceList = attendances.map((attendance) => ({
+      id: attendance.id,
+      attendeeName: attendance.data.attendeeName,
+      attendeeCount: attendance.data.attendeeCount,
+      guestSide: attendance.data.guestSide,
+      contact: attendance.data.contact,
+      companionCount: attendance.data.companionCount,
+      mealOption: attendance.data.mealOption,
+      componentId: attendance.component_id,
+      createdAt: attendance.createdAt,
+    }));
+
+    // 통계 계산
+    const totalAttendees = attendanceList.reduce((sum, item) => sum + item.attendeeCount, 0);
+    const totalCompanions = attendanceList.reduce((sum, item) => sum + item.companionCount, 0);
+    const brideGuests = attendanceList.filter(item => item.guestSide === '신부측').length;
+    const groomGuests = attendanceList.filter(item => item.guestSide === '신랑측').length;
+    const withMeal = attendanceList.filter(item => item.mealOption === '식사함').length;
+    const withoutMeal = attendanceList.filter(item => item.mealOption === '식사안함').length;
+
+    return {
+      summary: {
+        totalResponses: attendanceList.length,
+        totalAttendees: totalAttendees,
+        totalCompanions: totalCompanions,
+        totalPeople: totalAttendees + totalCompanions,
+        brideGuests: brideGuests,
+        groomGuests: groomGuests,
+        withMeal: withMeal,
+        withoutMeal: withoutMeal,
+      },
+      attendances: attendanceList,
+    };
+  }
+
   // 페이지 콘텐츠 조회 (roomId 기반)
   async getPageContentByRoom(roomId: string): Promise<any> {
     const page = await this.pagesRepository.findOne({ where: { id: roomId } });

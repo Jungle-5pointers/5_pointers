@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../config';
 import InvitationNotifications from '../components/InvitationNotifications';
 import NotificationToggle from '../components/NotificationToggle';
 import TemplateCanvasPreview from '../components/TemplateCanvasPreview';
+import AttendanceSummary from '../components/AttendanceSummary';
 const ddukddakLogo = '/ddukddak-logo.png';
 
 function randomId() {
@@ -27,6 +28,12 @@ function DashboardPage({ user, onLogout }) {
   });
   const [isMyPagesOpen, setIsMyPagesOpen] = useState(false);
   const dropdownRef = useRef(null);
+  
+  // 참석 의사 전달 모달 상태
+  const [attendanceModal, setAttendanceModal] = useState({
+    isOpen: false,
+    pageId: null,
+  });
 
   // 모바일과 데스크톱 템플릿 상태
   const [mobileTemplates, setMobileTemplates] = useState([]);
@@ -421,6 +428,77 @@ function DashboardPage({ user, onLogout }) {
     }
   };
 
+  // 참석 의사 전달 모달 열기
+  const openAttendanceModal = (pageId) => {
+    setAttendanceModal({ isOpen: true, pageId });
+  };
+
+  // 참석 의사 전달 모달 닫기
+  const closeAttendanceModal = () => {
+    setAttendanceModal({ isOpen: false, pageId: null });
+  };
+
+  // 서브도메인 표시 헬퍼 함수 - 페이지 상태에 따라 다른 표시 로직 적용
+  const getDisplaySubdomain = (subdomain, title, status) => {
+    if (!subdomain) return 'N/A';
+    
+    // DEPLOYED 상태인 페이지는 사용자가 입력한 실제 subdomain을 그대로 표시
+    if (status === 'DEPLOYED') {
+      return subdomain;
+    }
+    
+    // DRAFT 상태인 페이지만 UUID 패턴 등 다른 처리 적용
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(subdomain)) {
+      // UUID인 경우 제목과 함께 표시하거나 축약
+      if (title && title !== '제목 없음' && title !== 'Untitled') {
+        return `${title} (${subdomain.substring(0, 8)}...)`;
+      }
+      return `${subdomain.substring(0, 8)}...`;
+    }
+    
+    // page- 형태의 자동 생성된 서브도메인인 경우 날짜 변환
+    if (subdomain.startsWith('page-')) {
+      const timestamp = subdomain.replace('page-', '');
+      const date = new Date(parseInt(timestamp));
+      if (!isNaN(date.getTime()) && timestamp.length === 13) {
+        return `page-${date.toLocaleDateString('ko-KR')}`;
+      }
+    }
+    
+    // 나머지는 그대로 표시
+    return subdomain;
+  };
+
+  // 서브도메인 URL 생성 헬퍼 함수
+  const getSubdomainUrl = (subdomain) => {
+    if (!subdomain) return '#';
+    
+    const isProduction = process.env.NODE_ENV === 'production';
+    return isProduction 
+      ? `https://${subdomain}.ddukddak.org`
+      : `http://${subdomain}.localhost:3001`;
+  };
+
+  // 도메인 복사 함수
+  const copyDomainToClipboard = (subdomain, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const url = getSubdomainUrl(subdomain);
+    navigator.clipboard.writeText(url).then(() => {
+      // 임시 알림 표시 (실제 구현에서는 toast 라이브러리를 사용할 수 있음)
+      const originalText = e.target.title;
+      e.target.title = '복사됨!';
+      setTimeout(() => {
+        e.target.title = originalText;
+      }, 1000);
+    }).catch(() => {
+      // 복사 실패 시 폴백
+      alert(`도메인 주소: ${url}`);
+    });
+  };
+
   const handleCreateNew = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -596,9 +674,9 @@ function DashboardPage({ user, onLogout }) {
                           </svg>
                         </div>
                         <div>
-                          <h3 className="text-sm font-bold text-slate-800">최종 완료된 페이지</h3>
+                          <h3 className="text-sm font-bold text-slate-800">배포된 페이지</h3>
                           <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
-                            {myPages.filter((page) => page.status === 'DEPLOYED').length}개
+                            {myPages.filter((page) => page.status === 'DEPLOYED' || (page.subdomain && page.subdomain.trim() !== '')).length}개
                           </span>
                         </div>
                       </div>
@@ -609,7 +687,7 @@ function DashboardPage({ user, onLogout }) {
                           </div>
                         ) : (
                           myPages
-                            .filter((page) => page.status === 'DEPLOYED')
+                            .filter((page) => page.status === 'DEPLOYED' || (page.subdomain && page.subdomain.trim() !== ''))
                             .map((pub) => (
                               <div
                                 key={pub.id}
@@ -634,10 +712,40 @@ function DashboardPage({ user, onLogout }) {
                                       <div className="text-sm font-medium text-slate-700">{pub.title || '제목 없음'}</div>
                                     )}
                                     <div className="text-xs text-slate-500 mt-1">
-                                      배포일: {new Date(pub.deployedAt || pub.updatedAt).toLocaleDateString()}
+                                      {pub.status === 'DEPLOYED' ? 
+                                        `배포일: ${new Date(pub.deployedAt || pub.updatedAt).toLocaleDateString()}` :
+                                        (
+                                          <div className="flex items-center gap-1">
+                                            <span>도메인: {getDisplaySubdomain(pub.subdomain, pub.title, pub.status)}</span>
+                                            {pub.subdomain && (
+                                              <a 
+                                                href={getSubdomainUrl(pub.subdomain)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-emerald-600 hover:text-emerald-800 flex items-center"
+                                                title={`${getSubdomainUrl(pub.subdomain)} 페이지 열기`}
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                              </a>
+                                            )}
+                                          </div>
+                                        )
+                                      }
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => openAttendanceModal(pub.id)}
+                                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                      title="참석 현황"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                      </svg>
+                                    </button>
                                     <button
                                       onClick={() => startEditTitle(pub.id, pub.title)}
                                       className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
@@ -659,9 +767,9 @@ function DashboardPage({ user, onLogout }) {
                               </div>
                             ))
                         )}
-                        {!pagesLoading && myPages.filter((page) => page.status === 'DEPLOYED').length === 0 && (
+                        {!pagesLoading && myPages.filter((page) => page.status === 'DEPLOYED' || (page.subdomain && page.subdomain.trim() !== '')).length === 0 && (
                           <div className="text-center py-3 text-slate-500 text-sm">
-                            최종 완료된 페이지가 없습니다
+                            배포된 페이지가 없습니다
                           </div>
                         )}
                       </div>
@@ -1223,6 +1331,14 @@ function DashboardPage({ user, onLogout }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 참석 의사 전달 모달 */}
+      {attendanceModal.isOpen && (
+        <AttendanceSummary
+          pageId={attendanceModal.pageId}
+          onClose={closeAttendanceModal}
+        />
       )}
     </div>
   );

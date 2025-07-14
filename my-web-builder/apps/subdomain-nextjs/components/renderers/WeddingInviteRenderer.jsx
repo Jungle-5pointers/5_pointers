@@ -1,26 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-export default function WeddingInviteRenderer({ comp, mode = 'live', width, height }) {
-    const [isLiveMode, setIsLiveMode] = useState(false);
-    
-    useEffect(() => {
-        if (mode === 'live' && typeof window !== 'undefined') {
-            setIsLiveMode(window.innerWidth <= 768);
-            
-            const handleResize = () => {
-                setIsLiveMode(window.innerWidth <= 768);
-            };
-            
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
-        }
-    }, [mode]);
-    
-    // 원본 크기 정보
-    const containerWidth = comp.width || 450;
-    const containerHeight = comp.height || 400;
-    
+export default function WeddingInviteRenderer({ comp, mode = 'editor' }) {
     const {
+        containerWidth = comp.width || 450,
+        containerHeight = comp.height || 400,
         title = "Our Love Story",
         titleFontFamily = "Playfair Display, serif",
         titleFontSize = 30,
@@ -39,7 +22,7 @@ export default function WeddingInviteRenderer({ comp, mode = 'live', width, heig
             "지켜나갈 수 있게 앞날을",
             "축복해 주시면 감사하겠습니다."
         ],
-        contentFontFamily = "Montserrat, sans-serif",
+        contentFontFamily = "Playfair Display, serif",
         contentFontSize = 18,
         contentFontWeight = "400",
         contentFontStyle = "normal",
@@ -57,47 +40,39 @@ export default function WeddingInviteRenderer({ comp, mode = 'live', width, heig
     return (
         <div
             style={{
+                padding: 40,
                 background: backgroundColor,
-                boxSizing: 'border-box',
-                overflow: 'hidden',
+                borderRadius: 0,
+                width: '100%',
+                height: '100%',
+                minWidth: 200,
+                minHeight: 120,
+                overflow: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 border: '1px solid #BDB5A6',
                 boxShadow: '0 8px 32px rgba(189, 181, 166, 0.15)',
-                width: '100%',
-                height: '100%',
-                ...(isLiveMode ? {
-                    borderRadius: 0,
-                    padding: `clamp(16px, 6vw, 40px)`,
-                    minWidth: `clamp(120px, 40vw, 200px)`,
-                    minHeight: `clamp(80px, 30vw, 120px)`
-                } : {
-                    borderRadius: 0,
-                    padding: 40,
-                    minWidth: 200,
-                    minHeight: 120
-                })
             }}
         >
             {/* 제목 */}
             <div
                 style={{
                     fontFamily: titleFontFamily,
-                    fontSize: isLiveMode ? `clamp(${Math.max(16, titleFontSize * 0.7)}px, ${(titleFontSize / 375) * 100}vw, ${titleFontSize}px)` : toPx(titleFontSize),
+                    fontSize: toPx(titleFontSize),
                     fontStyle: titleFontStyle,
                     fontWeight: titleFontWeight,
                     textDecoration: titleTextDecoration,
                     color: titleColor,
-                    marginBottom: isLiveMode ? `clamp(14px, 5vw, 28px)` : 28,
+                    marginBottom: 28,
                     textAlign: titleAlign,
                     width: '100%',
                     letterSpacing: 1,
                     lineHeight: 1.2,
                     wordBreak: 'keep-all',
                     background: 'none',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap' // ✅ 연속 스페이스/줄바꿈 반영
                 }}
             >
                 {title || <span style={{ color: "#bbb" }}>제목 없음</span>}
@@ -107,7 +82,7 @@ export default function WeddingInviteRenderer({ comp, mode = 'live', width, heig
             <div
                 style={{
                     fontFamily: contentFontFamily,
-                    fontSize: isLiveMode ? `clamp(${Math.max(12, contentFontSize * 0.7)}px, ${(contentFontSize / 375) * 100}vw, ${contentFontSize}px)` : toPx(contentFontSize),
+                    fontSize: toPx(contentFontSize),
                     fontWeight: contentFontWeight,
                     fontStyle: contentFontStyle,
                     textDecoration: contentTextDecoration,
@@ -117,14 +92,11 @@ export default function WeddingInviteRenderer({ comp, mode = 'live', width, heig
                     width: '100%',
                     wordBreak: 'keep-all',
                     background: 'none',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap' // ✅ 연속 스페이스/줄바꿈 반영
                 }}
             >
                 {contentLines.map((line, idx) => (
-                    <div key={idx} style={{ 
-                        minHeight: isLiveMode ? `clamp(12px, 4vw, 24px)` : 24, 
-                        whiteSpace: 'pre-wrap' 
-                    }}>
+                    <div key={idx} style={{ minHeight: 24, whiteSpace: 'pre-wrap' }}>
                         {line && line.trim().length > 0 ? line : <span style={{ opacity: 0.3 }}>　</span>}
                     </div>
                 ))}

@@ -305,12 +305,7 @@ function EditorHeader({
         isDeploying={isDeploying}
         deployedUrl={deployedUrl}
         onDeploy={(domain) => {
-          handleDeploy(components, roomId, domain, (deployedUrl) => {
-            // 배포 완료 후 페이지 목록 새로고침을 위해 대시보드로 이동
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 2000); // 2초 후 대시보드로 이동
-          });
+          handleDeploy(components, roomId, domain);
         }}
       />
     </div>

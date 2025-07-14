@@ -138,7 +138,10 @@ function DeployedPage({ user, onLogout }) {
           <div className="flex justify-between items-center">
             {/* 로고 섹션 */}
             <div className="flex items-center gap-6">
-              <div className="relative group">
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => navigate('/dashboard')}
+              >
                 <img
                   src={ddukddakLogo}
                   alt="DdukDdak"
@@ -161,17 +164,6 @@ function DeployedPage({ user, onLogout }) {
 
             {/* 우측 버튼 그룹 */}
             <div className="flex items-center gap-3">
-              {/* 대시보드로 돌아가기 */}
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="px-4 py-2 bg-white text-slate-600 hover:text-blue-600 rounded-lg transition-all duration-300 font-medium border border-slate-200 hover:border-blue-200 flex items-center gap-2 group"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                대시보드
-              </button>
-
               {/* 임시 저장 페이지 버튼 */}
               <button
                 onClick={() => navigate('/dashboard/drafts')}

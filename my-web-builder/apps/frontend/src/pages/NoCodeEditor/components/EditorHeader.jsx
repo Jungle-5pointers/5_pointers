@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationToggle from '../../../components/NotificationToggle';
-import ddukddakLogo from '/ddukddak-logo.png';
 import { useDeploy } from '../ComponentLibrary/hooks/useDeploy';
 import DeployModal from './DeployModal';
-import PageNavigation from './PageNavigation';
 import { usePageMembers } from '../../../hooks/usePageMembers';
-import { getUserColor } from '../../../utils/userColors';
+import { getUserColor } from '../../../utils/userColors';``
+import ddukddakLogo from '/ddukddak-logo.png';
 
 function EditorHeader({
   components,
@@ -99,20 +98,21 @@ function EditorHeader({
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
           onClick={handleLogoClick}
         >
+
           <img
             src={ddukddakLogo}
             alt="뚝딱"
             className="w-13 h-6 object-contain"
           />
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
+            DDUKDDAK
+          </h1>
         </div>
       </div>
 
       {/* 중앙: 편집 기준 선택 및 멤버 정보 */}
       <div className="flex-1 flex justify-center mx-4 min-w-0">
         <div className="flex items-center gap-4">
-          {/* 페이지 네비게이션 */}
-          <PageNavigation currentPageId={pageId} />
-
           {/* DesignMode 선택 드롭다운 */}
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-600 font-medium whitespace-nowrap">
@@ -305,7 +305,12 @@ function EditorHeader({
         isDeploying={isDeploying}
         deployedUrl={deployedUrl}
         onDeploy={(domain) => {
-          handleDeploy(components, roomId, domain);
+          handleDeploy(components, roomId, domain, (deployedUrl) => {
+            // 배포 완료 후 페이지 목록 새로고침을 위해 대시보드로 이동
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 2000); // 2초 후 대시보드로 이동
+          });
         }}
       />
     </div>

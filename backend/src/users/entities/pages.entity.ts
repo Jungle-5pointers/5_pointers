@@ -50,6 +50,9 @@ export class Pages {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
+  @Column({ name: 'deployed_at', nullable: true })
+  deployedAt: Date;
+
   @OneToMany(() => PageMembers, (member) => member.page)
   members: PageMembers[];
 

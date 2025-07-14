@@ -281,7 +281,7 @@ function ImageListEditor({ value = [], onChange, label = "이미지 목록" }) {
                 type="text"
                 value={image.caption}
                 onChange={(e) => handleCaptionChange(image.id, e.target.value)}
-                placeholder="캡션"
+                placeholder="사진에 대한 짧은 설명을 적어주세요"
                 style={{
                   width: "100%",
                   padding: "4px 6px",

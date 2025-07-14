@@ -14,12 +14,20 @@ const PREVIEW_CSS = `
     overflow-x: hidden;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
   #preview-root {
     width: 100%;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
   .mobile-viewport {
     width: 375px;
@@ -27,6 +35,7 @@ const PREVIEW_CSS = `
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    align-self: flex-start;
   }
   .desktop-viewport {
     width: 100%;
@@ -211,15 +220,17 @@ const PreviewModal = ({
     // 헤더
     React.createElement("div", { className: "modal-header" },
       React.createElement("div", { className: "viewport-controls" },
-        templateCategory !== "wedding" && React.createElement("button", {
+        //데스크톱 버튼 : 편집모드가 데스크톱일 때만 표시
+        editingViewport === "desktop" && React.createElement("button", {
           onClick: () => setViewMode("desktop"),
           className: `viewport-btn ${viewMode === "desktop" ? "active" : ""}`
         }, "Desktop"),
+        //모바일 버튼: 항상 표시
         React.createElement("button", {
           onClick: () => setViewMode("mobile"),
           className: `viewport-btn ${viewMode === "mobile" ? "active" : ""}`
         }, "Mobile")
-      ),
+        ),
       React.createElement("button", {
         onClick: onClose,
         className: "close-btn"
@@ -256,7 +267,7 @@ const PreviewModal = ({
     ),
 
     // Styles
-    React.createElement("style", { jsx: true }, `
+    React.createElement("style", null, `
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -410,9 +421,10 @@ const PreviewModal = ({
         overflow: hidden;
         position: relative;
         background: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: block;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
       }
 
       .iphone-home-indicator {

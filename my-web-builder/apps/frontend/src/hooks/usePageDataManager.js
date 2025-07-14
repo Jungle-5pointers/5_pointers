@@ -7,6 +7,7 @@ import useAutoSave from './useAutoSave';
  * - 서버로부터 페이지 데이터 로딩
  * - components, designMode 상태 관리
  * - 자동 저장 기능
+ * - 템플릿 시작 시 즉시 컴포넌트 렌더링
  */
 export function usePageDataManager(roomId, initialViewport = 'desktop') {
   const [components, setComponents] = useState([]);
@@ -69,7 +70,14 @@ export function usePageDataManager(roomId, initialViewport = 'desktop') {
           // content 구조 처리
           if (pageData.content && typeof pageData.content === 'object') {
             // 새로운 형식: { components: [], canvasSettings: {} }
-            setComponents(pageData.content.components || []);
+            const loadedComponents = pageData.content.components || [];
+            console.log('📄 페이지 데이터에서 로드된 컴포넌트:', loadedComponents.length, '개');
+            
+            // 템플릿 컴포넌트를 즉시 렌더링
+            if (loadedComponents.length > 0) {
+              console.log('🎨 템플릿 컴포넌트를 즉시 렌더링합니다');
+              setComponents(loadedComponents);
+            }
 
             // designMode 설정 (있는 경우)
             if (pageData.content.canvasSettings?.designMode) {
@@ -82,7 +90,14 @@ export function usePageDataManager(roomId, initialViewport = 'desktop') {
             }
           } else {
             // 이전 형식: content가 직접 배열인 경우
-            setComponents(pageData.content || []);
+            const loadedComponents = pageData.content || [];
+            console.log('📄 페이지 데이터에서 로드된 컴포넌트:', loadedComponents.length, '개');
+            
+            // 템플릿 컴포넌트를 즉시 렌더링
+            if (loadedComponents.length > 0) {
+              console.log('🎨 템플릿 컴포넌트를 즉시 렌더링합니다');
+              setComponents(loadedComponents);
+            }
           }
 
           // 기타 페이지 정보 설정
@@ -111,6 +126,7 @@ export function usePageDataManager(roomId, initialViewport = 'desktop') {
       }
     };
 
+    // 즉시 로드 실행
     loadPageData();
   }, [roomId]);
 

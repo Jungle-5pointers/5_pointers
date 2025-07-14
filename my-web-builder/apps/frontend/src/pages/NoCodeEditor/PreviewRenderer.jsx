@@ -176,7 +176,9 @@ const PreviewRenderer = ({ components = [], forcedViewport = null, editingViewpo
           flexDirection: 'column',
           alignItems: 'center',
           gap: '16px',
-          padding: '16px 0'
+          padding: '16px 0',
+          margin: 0,
+          padding: 0,
         }}
       >
         {rows.map((row, rowIndex) => (
@@ -230,15 +232,15 @@ const PreviewRenderer = ({ components = [], forcedViewport = null, editingViewpo
   const containerStyle = {
     background: '#ffffff',
     transformOrigin: 'top left',
-    width: isMobileView ? '100%' : `${canvasWidth}px`,
+    width: isMobileView ? `${canvasWidth}px` : `${canvasWidth}px`,
     height: isMobileView ? 'auto' : `${canvasHeight}px`,
-    minHeight: isMobileView ? `${canvasHeight}px` : 'auto',
-    transform: isModalOpen ? 'none' : `scale(${isMobileView ? 1 : scale})`,
+    minHeight: isMobileView ? '812px' : 'auto',   // mobile-viewport 높이에 맞춤    transform: isModalOpen ? 'none' : `scale(${isMobileView ? 1 : scale})`,
     overflow: isMobileView ? 'auto' : 'visible',
     position: 'relative',
     margin: 0,
     padding: 0,
     boxSizing: 'border-box',
+    display: isMobileView ? 'block' : undefined,
   };
 
   return (

@@ -24,7 +24,6 @@ import {
   ColorEditor,
   ObjectFitEditor,
   BorderRadiusEditor,
-  TextEditor
 } from "../PropertyEditors";
 
 function GridGalleryEditor({ selectedComp, onUpdate }) {
@@ -132,13 +131,6 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
           label="이미지 맞춤"
         />
         
-        <TextEditor
-          value={selectedComp.props.objectPosition}
-          onChange={value => updateProperty("objectPosition", value)}
-          label="이미지 정렬"
-          placeholder="center, top, bottom 등"
-        />
-        
         <ColorEditor
           value={selectedComp.props.backgroundColor}
           onChange={value => updateProperty("backgroundColor", value)}
@@ -156,18 +148,6 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
           value={selectedComp.props.enableModal}
           onChange={value => updateProperty("enableModal", value)}
           label="전체화면 보기 활성화"
-        />
-        
-        <BooleanEditor
-          value={selectedComp.props.showNavigation}
-          onChange={value => updateProperty("showNavigation", value)}
-          label="네비게이션 표시"
-        />
-        
-        <BooleanEditor
-          value={selectedComp.props.showCaption}
-          onChange={value => updateProperty("showCaption", value)}
-          label="캡션 표시"
         />
       </div>
 

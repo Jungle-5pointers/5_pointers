@@ -314,7 +314,7 @@ export function useComponentActions(
 
 
 
-  // 컴포넌트 업데이트
+  // 컴포넌트 업데이트 (실시간 동기화 개선)
   const handleUpdate = useCallback(
     (comp) => {
       // 기존 컴포넌트 찾기
@@ -324,15 +324,18 @@ export function useComponentActions(
         return;
       }
 
-      // 변경된 속성만 추출
+      // 변경된 속성만 추출 (성능 최적화)
       const updates = {};
+      let hasChanges = false;
+      
       Object.keys(comp).forEach((key) => {
-        if (JSON.stringify(existingComp[key]) !== JSON.stringify(comp[key])) {
-          updates[key] = comp[key];
-          console.log(`속성 변경 감지: ${key}`, {
-            기존: existingComp[key],
-            새로운: comp[key],
-          });
+        const existingValue = existingComp[key];
+        const newValue = comp[key];
+        
+        // 깊은 비교 대신 간단한 비교 사용 (성능 향상)
+        if (existingValue !== newValue) {
+          updates[key] = newValue;
+          hasChanges = true;
         }
       });
 
@@ -341,8 +344,9 @@ export function useComponentActions(
         updates.editedViewport = viewport;
       }
 
-      // 협업 기능으로 컴포넌트 업데이트
-      if (Object.keys(updates).length > 0) {
+      // 협업 기능으로 컴포넌트 업데이트 (실시간 동기화)
+      if (hasChanges && Object.keys(updates).length > 0) {
+        console.log('🔄 컴포넌트 업데이트 요청:', comp.id, updates);
         updateComponent(comp.id, updates);
       }
     },

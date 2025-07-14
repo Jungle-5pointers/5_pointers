@@ -1,6 +1,6 @@
 // frontend/src/hooks/useYjsCollaboration.js
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { addUserColor } from '../utils/userColors';
@@ -14,9 +14,63 @@ export function useYjsCollaboration(roomId, userInfo) {
   const providerRef = useRef(null);
   const awarenessRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 3;
+
+  // 연결 정리 함수
+  const cleanupConnection = useCallback(() => {
+    console.log('🧹 Y.js 연결 정리 시작');
+    try {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
+      if (awarenessRef.current) {
+        awarenessRef.current.destroy();
+        awarenessRef.current = null;
+      }
+      
+      if (providerRef.current) {
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
+      
+      if (ydocRef.current) {
+        ydocRef.current.destroy();
+        ydocRef.current = null;
+      }
+      
+      console.log('✅ Y.js 연결 정리 완료');
+    } catch (error) {
+      console.error('❌ Y.js 연결 정리 오류:', error);
+    }
+  }, []);
+
+  // 재연결 시도 함수
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.log('🛑 최대 재연결 시도 횟수 초과');
+      setIsLocalMode(true);
+      return;
+    }
+
+    reconnectAttemptsRef.current++;
+    console.log(`🔄 재연결 시도 ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
+    
+    if (providerRef.current) {
+      providerRef.current.connect();
+    }
+  }, []);
 
   useEffect(() => {
-    if (!roomId || !userInfo) return;
+    // 기본값 보장
+    const safeRoomId = roomId || 'default-room';
+    const safeUserInfo = userInfo || { id: 'anonymous', name: 'Anonymous', color: '#000000' };
+
+    // 기존 연결 정리
+    cleanupConnection();
+    reconnectAttemptsRef.current = 0;
 
     // Y.Doc 인스턴스 생성
     const ydoc = new Y.Doc();
@@ -24,100 +78,74 @@ export function useYjsCollaboration(roomId, userInfo) {
     // JWT 토큰 가져오기
     const token = localStorage.getItem('token');
 
-    // 일관된 방 이름 형식 사용 (중요: 페이지 ID만 사용, 사용자 정보 사용 안 함)
-    const roomName = `page:${roomId}`;
+    // 일관된 방 이름 형식 사용
+    const roomName = `page:${safeRoomId}`;
 
     // 환경에 따른 WebSocket URL 설정
     const wsUrl = YJS_WEBSOCKET_URL;
 
-    console.log(
-      '🔄 Y.js 서버 연결 시도:',
-      wsUrl,
-      'Room:',
-      roomName,
-      'User:',
-      userInfo
-    );
+    console.log('🔄 Y.js 서버 연결 시도:', wsUrl, 'Room:', roomName);
 
-    // WebsocketProvider 초기화 - auth 필드에 토큰 전달 (핵심 수정사항)
+    // WebsocketProvider 초기화
     const provider = new WebsocketProvider(wsUrl, roomName, ydoc, {
       connect: true,
-      // auth 필드에 JWT 토큰 전달
       auth: {
         token: token,
       },
-      // 연결 설정
       maxBackoffTime: 5000,
       resyncInterval: 5000,
-      // 디버깅용 추가 파라미터
       params: {
-        pageId: roomId,
-        userId: userInfo.id,
+        pageId: safeRoomId,
+        userId: safeUserInfo.id,
       },
     });
 
-    // Awareness 인스턴스 - 커서 및 선택 상태 공유
+    // Awareness 인스턴스
     const awareness = provider.awareness;
 
-    // 연결 상태 모니터링
+    // 연결 상태 모니터링 (최적화됨)
     provider.on('status', (event) => {
-      console.log('📡 WebSocket 연결 상태:', event.status);
-      setIsConnected(event.status === 'connected');
-      
       if (event.status === 'connected') {
+        setIsConnected(true);
         setConnectionError(null);
         setIsLocalMode(false);
+        reconnectAttemptsRef.current = 0; // 연결 성공 시 재시도 횟수 리셋
         
-        // 사용자 정보에 고유 색상 추가
+        // 사용자 정보 설정
         const userWithColor = addUserColor(userInfo);
-        console.log('✅ 연결 완료, 사용자 정보 설정:', userWithColor);
         awareness.setLocalStateField('user', {
           name: userWithColor.name,
           color: userWithColor.color,
           id: userWithColor.id,
         });
       } else if (event.status === 'disconnected') {
-        console.warn('⚠️ WebSocket 연결이 끊어졌습니다. 재연결을 시도합니다...');
         setIsConnected(false);
       }
     });
 
-    // 연결 오류 처리
+    // 연결 오류 처리 (최적화됨)
     provider.on('connection-error', (error) => {
-      console.error('❌ WebSocket 연결 오류:', {
-        error,
-        wsUrl,
-        roomName,
-        userInfo: userInfo.id,
-        timestamp: new Date().toISOString()
-      });
+      console.error('❌ WebSocket 연결 오류:', error);
       setConnectionError(error);
       setIsLocalMode(true);
       
-      // 5초 후 재연결 시도
+      // 재연결 시도
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('🔄 WebSocket 재연결 시도...');
-        provider.connect();
-      }, 5000);
+      reconnectTimeoutRef.current = setTimeout(attemptReconnect, 5000);
     });
 
-    // 연결 실패 처리
-    provider.on('connection-close', (event) => {
-      console.warn('🔌 WebSocket 연결 종료:', {
-        event,
-        wsUrl,
-        roomName,
-        timestamp: new Date().toISOString()
-      });
+    // 연결 종료 처리
+    provider.on('connection-close', () => {
       setIsConnected(false);
     });
 
-    // 동기화 상태 모니터링
+    // 동기화 상태 모니터링 (로깅 최소화)
     provider.on('sync', (isSynced) => {
-      console.log('🔄 Y.js 동기화 상태:', isSynced ? '✅ 완료' : '⏳ 진행중');
+      if (!isSynced) {
+        console.log('🔄 Y.js 동기화 진행중...');
+      }
     });
 
     // 참조 저장
@@ -126,21 +154,8 @@ export function useYjsCollaboration(roomId, userInfo) {
     awarenessRef.current = awareness;
 
     // 정리 함수
-    return () => {
-      console.log('🧹 Y.js 연결 종료 시작');
-      try {
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-        }
-        awareness.destroy();
-        provider.destroy();
-        ydoc.destroy();
-        console.log('✅ Y.js 연결 종료 완료');
-      } catch (error) {
-        console.error('❌ Y.js 연결 종료 오류:', error);
-      }
-    };
-  }, [roomId, userInfo]);
+    return cleanupConnection;
+  }, [roomId, userInfo, cleanupConnection, attemptReconnect]);
 
   return {
     ydoc: ydocRef.current,
@@ -148,6 +163,6 @@ export function useYjsCollaboration(roomId, userInfo) {
     awareness: awarenessRef.current,
     isConnected,
     connectionError,
-    isLocalMode, // 로컬 모드 상태 추가
+    isLocalMode,
   };
 }

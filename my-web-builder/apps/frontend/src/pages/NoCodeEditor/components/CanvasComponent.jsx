@@ -53,6 +53,7 @@ function CanvasComponent({
 
   const handleComponentUpdate = (updatedComp) => {
     if (onUpdate) {
+      // 협업 시스템을 통한 업데이트
       onUpdate(updatedComp);
     }
   };
@@ -462,6 +463,7 @@ function CanvasComponent({
       };
     }
 
+    // 협업 시스템을 통한 업데이트
     onUpdate(updatedComp);
   };
 
@@ -575,12 +577,15 @@ function CanvasComponent({
       });
     }
 
-    // 단일 좌표계로 위치 업데이트
-    onUpdate({
+    // 단일 좌표계로 위치 업데이트 (실시간 동기화)
+    const updatedComponent = {
       ...comp,
       x: newX,
       y: newY,
-    });
+    };
+    
+    // 협업 시스템을 통한 업데이트
+    onUpdate(updatedComponent);
   };
 
   // 드래그 종료 핸들러 (snapLines 항상 초기화)

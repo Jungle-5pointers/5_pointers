@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import useAutoSave from '../hooks/useAutoSave';
 import SaveStatusIndicator from '../components/SaveStatusIndicator';
@@ -26,6 +26,20 @@ import { getUserColor } from '../utils/userColors';
 import {
   getComponentDimensions,
 } from './NoCodeEditor/utils/editorUtils';
+
+// 쓰로틀링 유틸리티 함수
+const throttle = (func, limit) => {
+  let inThrottle;
+  return function() {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  }
+};
 
 function NoCodeEditor({ pageId }) {
   const { roomId } = useParams();
@@ -106,37 +120,52 @@ function NoCodeEditor({ pageId }) {
   // 3. UI 상호작용 관리 (초기 뷰포트 설정 포함)
   const interaction = useEditorInteractionManager(designMode, setDesignMode, initialViewport);
 
-  // 4. 협업 동기화 로직
+  // 4. 협업 동기화 로직 (항상 호출되도록 보장)
   const collaboration = useCollaboration({
-    roomId: pageId,
-    userInfo,
+    roomId: pageId || 'default-room',
+    userInfo: userInfo || { id: 'anonymous', name: 'Anonymous', color: '#000000' },
     canvasRef,
     selectedComponentId: interaction.selectedId,
     onComponentsUpdate: setComponents,
     viewport: interaction.viewport,
   });
 
-  const {
-    otherCursors,
-    otherSelections,
-    updateCursorPosition,
-    addComponent,
-    updateComponent,
-    removeComponent,
-    updateAllComponents,
-    getActiveUsers,
-    undo,
-    redo,
-    getHistory,
-    setHistory,
-    isConnected,
-    connectionError,
-  } = collaboration;
+  // 템플릿 시작 시 모든 사용자에게 즉시 동기화
+  useEffect(() => {
+    if (isFromTemplate && pageId && !isLoading && collaboration.isConnected && components.length > 0) {
+      console.log('🎨 템플릿이 로드되었습니다. 모든 사용자에게 즉시 동기화 준비 완료');
+      
+      // 모든 사용자에게 즉시 동기화를 위해 updateAllComponents 호출
+      if (collaboration.updateAllComponents) {
+        console.log('🔄 모든 사용자에게 템플릿 동기화 시작...');
+        collaboration.updateAllComponents(components);
+      }
+    }
+  }, [isFromTemplate, pageId, isLoading, collaboration.isConnected, components, collaboration.updateAllComponents]);
 
-  // 5. 컴포넌트 액션 관리
+  // collaboration이 undefined일 수 있으므로 기본값 제공
+  const {
+    otherCursors = [],
+    otherSelections = [],
+    updateCursorPosition = () => {},
+    addComponent = () => {},
+    updateComponent = () => {},
+    updateComponentObject = () => {},
+    removeComponent = () => {},
+    updateAllComponents = () => {},
+    getActiveUsers = () => [],
+    undo = () => {},
+    redo = () => {},
+    getHistory = () => ({ canUndo: false, canRedo: false }),
+    setHistory = () => {},
+    isConnected = false,
+    connectionError = null,
+  } = collaboration || {};
+
+  // 5. 컴포넌트 액션 관리 (항상 호출되도록 보장)
   const actions = useComponentActions(
-    collaboration,
-    userInfo,
+    collaboration || {},
+    userInfo || { id: 'anonymous', name: 'Anonymous', color: '#000000' },
     components,
     interaction.viewport,
     canvasHeight,
@@ -145,6 +174,34 @@ function NoCodeEditor({ pageId }) {
     interaction.setTemplateData,
     interaction.handleTemplateSaveClose
   );
+
+  // 협업 시스템을 통한 컴포넌트 업데이트 함수
+  const handleCollaborativeUpdate = useCallback((updatedComponent) => {
+    if (isConnected && updateComponentObject) {
+      // 협업 모드: Y.js를 통한 동기화
+      updateComponentObject(updatedComponent);
+    } else {
+      // 로컬 모드: 로컬 상태 업데이트
+      setComponents(prevComponents => 
+        prevComponents.map(comp => 
+          comp.id === updatedComponent.id ? updatedComponent : comp
+        )
+      );
+    }
+  }, [isConnected, updateComponentObject]);
+
+  // 쓰로틀링된 커서 업데이트 함수 (useRef로 관리)
+  const throttledUpdateCursorPositionRef = useRef(null);
+  
+  useEffect(() => {
+    throttledUpdateCursorPositionRef.current = throttle(updateCursorPosition, 16);
+  }, [updateCursorPosition]);
+  
+  const throttledUpdateCursorPosition = useCallback((...args) => {
+    if (throttledUpdateCursorPositionRef.current) {
+      throttledUpdateCursorPositionRef.current(...args);
+    }
+  }, []);
 
   // 컴포넌트 선택 시 스크롤 이동
   useEffect(() => {
@@ -168,12 +225,16 @@ function NoCodeEditor({ pageId }) {
     });
   }, [interaction.selectedId, components]);
 
-  // 연결 오류 알림
+  // 연결 상태 모니터링
   useEffect(() => {
     if (connectionError) {
-      console.error('협업 연결 오류:', connectionError);
+      console.error('🔴 협업 연결 오류:', connectionError);
+    } else if (isConnected) {
+      console.log('🟢 Y.js 협업 연결 성공');
+    } else {
+      console.log('🟡 Y.js 협업 연결 중...');
     }
-  }, [connectionError]);
+  }, [connectionError, isConnected]);
 
   // 협업 시스템에서 캔버스 설정 동기화
   useEffect(() => {
@@ -279,7 +340,7 @@ function NoCodeEditor({ pageId }) {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedIds, interaction.selectedId, actions, components, clipboard, interaction.setSelectedId]);
+  }, [selectedIds, interaction.selectedId, actions, components, clipboard, interaction.setSelectedId, addComponent]);
 
   // 브라우저 확대/축소 방지
   useEffect(() => {
@@ -309,15 +370,15 @@ function NoCodeEditor({ pageId }) {
   }, []);
 
   // 드롭 핸들러 (컴포넌트 추가 후 자동 선택)
-  const handleDrop = (e) => {
+  const handleDrop = useCallback((e) => {
     const newComponentId = actions.handleDrop(e);
     if (newComponentId) {
       setTimeout(() => interaction.setSelectedId(newComponentId), 100);
     }
-  };
+  }, [actions, interaction.setSelectedId]);
 
   // 다중 선택 핸들러
-  const handleMultiSelect = (ids) => {
+  const handleMultiSelect = useCallback((ids) => {
     console.log('handleMultiSelect 호출:', ids);
     setSelectedIds(ids);
     if (ids.length === 1) {
@@ -325,10 +386,10 @@ function NoCodeEditor({ pageId }) {
     } else {
       interaction.setSelectedId(null);
     }
-  };
+  }, [interaction.setSelectedId]);
 
   // 컴포넌트 선택 핸들러 (Ctrl+클릭 지원)
-  const handleSelect = (id, isCtrlPressed = false) => {
+  const handleSelect = useCallback((id, isCtrlPressed = false) => {
     if (id === null) {
       // 빈 영역 클릭 시 선택 해제
       setSelectedIds([]);
@@ -360,15 +421,24 @@ function NoCodeEditor({ pageId }) {
       setSelectedIds([id]);
       interaction.setSelectedId(id);
     }
-  };
+  }, [selectedIds, interaction.setSelectedId]);
 
-  // 자동저장 훅
+  // 자동저장 훅 (컴포넌트 변경 시에만 저장)
   const { isSaving, lastSaved, saveError, saveCount, saveNow } = useAutoSave(
     pageId,          // roomId (페이지 ID)
     components,      // 컴포넌트 배열
     canvasHeight,    // 현재 캔버스 높이
     2000             // 디바운스 시간 (2초)
   );
+
+  // 컴포넌트 변경 시 자동저장 트리거
+  useEffect(() => {
+    console.log('🎨 컴포넌트 상태 업데이트:', components.length, '개 컴포넌트');
+    if (components.length > 0) {
+      // 컴포넌트가 변경되면 자동저장 훅이 자동으로 처리
+      console.log('📝 컴포넌트 변경 감지, 자동저장 대기 중...');
+    }
+  }, [components]);
 
   // 컴포넌트 업데이트 핸들러
   const handleComponentsUpdate = useCallback((newComponents) => {
@@ -381,6 +451,40 @@ function NoCodeEditor({ pageId }) {
       console.log('🔴 협업 연결 오류로 인해 로컬 상태 관리 활성화');
     }
   }, [connectionError]);
+
+  // 컴포넌트와 선택된 컴포넌트
+  const selectedComp = components.find((c) => c.id === interaction.selectedId);
+
+  // 메모이제이션된 협업 객체
+  const collaborationObject = useMemo(() => ({
+    otherCursors,
+    otherSelections,
+    updateCursorPosition: throttledUpdateCursorPosition,
+    addComponent,
+    updateComponent,
+    removeComponent,
+    updateAllComponents,
+    getActiveUsers,
+    undo,
+    redo,
+    getHistory,
+    setHistory,
+    isConnected,
+  }), [
+    otherCursors,
+    otherSelections,
+    throttledUpdateCursorPosition,
+    addComponent,
+    updateComponent,
+    removeComponent,
+    updateAllComponents,
+    getActiveUsers,
+    undo,
+    redo,
+    getHistory,
+    setHistory,
+    isConnected,
+  ]);
 
   // 로딩 상태 처리
   if (isLoading) {
@@ -403,9 +507,6 @@ function NoCodeEditor({ pageId }) {
       </div>
     );
   }
-
-  // 컴포넌트와 선택된 컴포넌트
-  const selectedComp = components.find((c) => c.id === interaction.selectedId);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-white">
@@ -453,8 +554,6 @@ function NoCodeEditor({ pageId }) {
           }}
           components={components}
           roomId={effectiveRoomId}
-        //  roomId={roomId}
-        //pageId={pageId}
           isOpen={interaction.isLibraryOpen}
           onToggle={interaction.handleLibraryToggle}
           isReady={true} // 항상 준비 상태로 설정 (Y.js 연결과 독립적)
@@ -472,7 +571,7 @@ function NoCodeEditor({ pageId }) {
             nickname={userInfo.name}
             onSelect={handleSelect}
             onMultiSelect={handleMultiSelect}
-            onUpdate={actions.handleUpdate}
+            onUpdate={handleCollaborativeUpdate}
             onDelete={(id) =>
               actions.handleDelete(
                 id,
@@ -496,25 +595,11 @@ function NoCodeEditor({ pageId }) {
             onMouseUp={() => {}}
             otherCursors={otherCursors}
             otherSelections={otherSelections}
-            collaboration={{
-              otherCursors,
-              otherSelections,
-              updateCursorPosition,
-              addComponent,
-              updateComponent,
-              removeComponent,
-              updateAllComponents,
-              getActiveUsers,
-              undo,
-              redo,
-              getHistory,
-              setHistory,
-              isConnected,
-            }}
+            collaboration={collaborationObject}
             CanvasComponent={CanvasComponent}
             UserCursor={UserCursor}
             getComponentDimensions={getComponentDimensions}
-            updateCursorPosition={updateCursorPosition}
+            updateCursorPosition={throttledUpdateCursorPosition}
             onAddSection={(sectionY) =>
               actions.handleAddSection(
                 sectionY,
@@ -529,7 +614,7 @@ function NoCodeEditor({ pageId }) {
         {selectedComp && (
           <Inspector
             selectedComp={selectedComp}
-            onUpdate={actions.handleUpdate}
+            onUpdate={handleCollaborativeUpdate}
             viewport={interaction.viewport}
           />
         )}
@@ -574,7 +659,7 @@ function NoCodeEditor({ pageId }) {
             wsUrl="wss://3.35.50.227:1235"
             onRetry={() => {
               // 협업 시스템 재연결 시도
-              if (collaboration.provider) {
+              if (collaboration && collaboration.provider) {
                 collaboration.provider.connect();
               }
             }}

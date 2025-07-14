@@ -16,11 +16,18 @@ function useAutoSave(roomId, components, canvasHeight, debounceMs = 2000) {
 
   const timeoutRef = useRef(null);
   const lastDataRef = useRef(null);
+  const lastSaveTimeRef = useRef(0);
 
   // 서버에 저장하는 함수
   const saveToServer = useCallback(
     async (components) => {
       if (!roomId) return;
+
+      // 마지막 저장 후 1초 이내면 저장하지 않음
+      const now = Date.now();
+      if (now - lastSaveTimeRef.current < 1000) {
+        return;
+      }
 
       try {
         setIsSaving(true);
@@ -55,6 +62,7 @@ function useAutoSave(roomId, components, canvasHeight, debounceMs = 2000) {
         const result = await response.json();
         setLastSaved(new Date());
         setSaveCount((prev) => prev + 1);
+        lastSaveTimeRef.current = now;
 
         console.log('✅ 자동저장 완료:', result);
       } catch (error) {
@@ -67,7 +75,7 @@ function useAutoSave(roomId, components, canvasHeight, debounceMs = 2000) {
     [roomId, canvasHeight]
   );
 
-  // 디바운스된 자동저장
+  // 디바운스된 자동저장 (컴포넌트 변경 시에만)
   const debouncedSave = useCallback(
     (components) => {
       if (timeoutRef.current) {
@@ -92,7 +100,7 @@ function useAutoSave(roomId, components, canvasHeight, debounceMs = 2000) {
     saveToServer(components);
   }, [roomId, components, saveToServer]);
 
-  // 컴포넌트나 캔버스 높이가 변경될 때 자동저장
+  // 컴포넌트나 캔버스 높이가 변경될 때만 자동저장 (주기적 저장 제거)
   useEffect(() => {
     if (!roomId || !components) return;
 
@@ -102,12 +110,11 @@ function useAutoSave(roomId, components, canvasHeight, debounceMs = 2000) {
     };
     const currentDataStr = JSON.stringify(currentData);
     
-    if (lastDataRef.current === currentDataStr) {
-      return;
+    // 데이터가 실제로 변경되었을 때만 저장
+    if (lastDataRef.current !== currentDataStr) {
+      lastDataRef.current = currentDataStr;
+      debouncedSave(components);
     }
-
-    lastDataRef.current = currentDataStr;
-    debouncedSave(components);
   }, [roomId, components, canvasHeight, debouncedSave]);
 
   // 컴포넌트 언마운트 시 타이머 정리

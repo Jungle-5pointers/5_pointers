@@ -14,7 +14,11 @@ export default function MapInfoRenderer({ comp, mode = 'editor' }) {
     lineHeight = comp.props?.lineHeight || 1.6,
     letterSpacing = comp.props?.letterSpacing || 0,
     color = comp.props?.color || '#2c2c2c',
-    bgColor = comp.props?.bgColor || '#ffffff'
+    bgColor = comp.props?.bgColor || '#ffffff',
+    noBorder = true,
+    borderColor = comp.props?.borderColor || '#e5e7eb',
+    borderWidth = comp.props?.borderWidth || '1px',
+    borderRadius = comp.props?.borderRadius || 8
   } = comp.props;
 
   const toPx = v => (typeof v === 'number' ? `${v}px` : v || undefined);
@@ -24,14 +28,14 @@ export default function MapInfoRenderer({ comp, mode = 'editor' }) {
     <div
       style={{
         padding: '28px 24px',
-        background: `linear-gradient(135deg, ${bgColor} 0%, #f9f9f9 100%)`,
-        borderRadius: '0px',
+        background: bgColor,
+        borderRadius: 0,
         width: '100%',
         height: '100%',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        border: '1px solid rgba(0, 0, 0, 0.05)'
+        //boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        border: noBorder ? 'none' : `${borderWidth} solid ${borderColor}`
       }}
     >
       {sections.map((sec, idx) => (

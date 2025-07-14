@@ -87,11 +87,24 @@ export class TemplatesService {
     }
 
     // 페이지의 컴포넌트 데이터를 가져와서 템플릿으로 저장
+    // content 구조를 일관되게 {components: [], canvasSettings: {}} 형태로 저장
+    let templateContent;
+    if (typeof sourcePage.content === 'object' && !Array.isArray(sourcePage.content)) {
+      // 이미 새로운 구조인 경우
+      templateContent = sourcePage.content;
+    } else {
+      // 기존 배열 구조인 경우 새로운 구조로 변환
+      templateContent = {
+        components: Array.isArray(sourcePage.content) ? sourcePage.content : [],
+        canvasSettings: { canvasHeight: 1080 }
+      };
+    }
+
     const template = this.templatesRepository.create({
       name,
       category,
       thumbnail_url,
-      content: sourcePage.content || [], // 페이지의 컴포넌트 배열
+      content: templateContent,
       tags: tags || [],
       editingMode,
       author,

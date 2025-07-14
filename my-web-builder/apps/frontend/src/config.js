@@ -63,7 +63,7 @@ const getLocalNetworkIP = () => {
 
 // API 서버 설정 - 환경변수 기반
 export const API_BASE_URL = getEnvVar('VITE_API_URL') || getEnvVar('VITE_API_BASE_URL') || getEnvVar('NEXT_PUBLIC_API_URL') || 
-  (isProductionEnvironment() ? 'https://ddukddak.org/api' : 'http://localhost:3000/api');
+  (isProductionEnvironment() ? 'https://ddukddak.org/' : 'http://localhost:3000/');
 
 // Y.js WebSocket 서버 설정 - 환경변수 기반
 export const YJS_WEBSOCKET_URL = getEnvVar('VITE_YJS_WEBSOCKET_URL') || getEnvVar('VITE_WEBSOCKET_URL') || getEnvVar('NEXT_PUBLIC_YJS_WEBSOCKET_URL') ||

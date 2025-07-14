@@ -4,6 +4,8 @@ import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import DraftsPage from './pages/DraftsPage';
+import DeployedPage from './pages/DeployedPage';
 import SocialCallbackPage from './pages/SocialCallbackPage';
 import Dashboard from './pages/Dashboard';
 import AppEditor from './pages/AppEditor';
@@ -188,6 +190,26 @@ function App() {
           element={
             isLoggedIn ? (
               <DashboardPage user={user} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/dashboard/drafts"
+          element={
+            isLoggedIn ? (
+              <DraftsPage user={user} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/dashboard/deployed"
+          element={
+            isLoggedIn ? (
+              <DeployedPage user={user} onLogout={handleLogout} />
             ) : (
               <Navigate to="/login" replace />
             )

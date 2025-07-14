@@ -11,23 +11,34 @@ import {
 
 const PageEditor = ({ selectedComp, onUpdate }) => {
   const [localProps, setLocalProps] = useState(selectedComp.props || {});
+  const [noBorder, setNoBorder] = useState(
+    selectedComp.props?.noBorder !== undefined ? !!selectedComp.props.noBorder : true
+  );
 
   // 컴포넌트 props 초기화
   useEffect(() => {
     if (selectedComp && selectedComp.props) {
       setLocalProps(selectedComp.props);
+      setNoBorder(selectedComp.props.noBorder !== undefined ? !!selectedComp.props.noBorder : true);
     }
   }, [selectedComp]);
 
   const updateProperty = (key, value) => {
     const newProps = { ...localProps, [key]: value };
     setLocalProps(newProps);
-    
+    if (key === 'noBorder') setNoBorder(!!value);
     const updatedComponent = {
       ...selectedComp,
       props: newProps
     };
     onUpdate(updatedComponent);
+  };
+
+  // 테두리 제거 체크박스 핸들러
+  const handleNoBorderChange = (e) => {
+    const checked = e.target.checked;
+    setNoBorder(checked);
+    updateProperty('noBorder', checked);
   };
 
   const handleThumbnailUpload = async (file) => {
@@ -156,29 +167,47 @@ const PageEditor = ({ selectedComp, onUpdate }) => {
         key: 'style-title',
         style: { marginBottom: '12px', color: '#495057' }
       }, '스타일 설정'),
-      
+
+      // 테두리 제거 체크박스
+      React.createElement('div', {
+        key: 'no-border-checkbox',
+        style: { marginBottom: '12px' }
+      }, [
+        React.createElement('label', { key: 'label', style: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' } }, [
+          React.createElement('input', {
+            key: 'checkbox',
+            type: 'checkbox',
+            checked: noBorder,
+            onChange: handleNoBorderChange,
+            style: { accentColor: '#007bff' }
+          }),
+          '테두리 제거'
+        ])
+      ]),
+
       React.createElement(ColorEditor, {
         key: 'backgroundColor',
         value: localProps.backgroundColor || '#ffffff',
         onChange: (value) => updateProperty('backgroundColor', value),
         label: '배경색'
       }),
-      
+
       React.createElement(ColorEditor, {
         key: 'textColor',
         value: localProps.textColor || '#333333',
         onChange: (value) => updateProperty('textColor', value),
         label: '텍스트 색상'
       }),
-      
-      React.createElement(ColorEditor, {
+
+      // 테두리 관련 에디터는 noBorder가 false일 때만 표시
+      !noBorder && React.createElement(ColorEditor, {
         key: 'borderColor',
         value: localProps.borderColor || '#007bff',
         onChange: (value) => updateProperty('borderColor', value),
         label: '테두리 색상'
       }),
-      
-      React.createElement(SelectEditor, {
+
+      !noBorder && React.createElement(SelectEditor, {
         key: 'borderWidth',
         value: localProps.borderWidth || '2px',
         onChange: (value) => updateProperty('borderWidth', value),
@@ -190,8 +219,8 @@ const PageEditor = ({ selectedComp, onUpdate }) => {
           { value: '4px', label: '4px' }
         ]
       }),
-      
-      React.createElement(NumberEditor, {
+
+      !noBorder && React.createElement(NumberEditor, {
         key: 'borderRadius',
         value: parseInt(localProps.borderRadius) || 8,
         onChange: (value) => updateProperty('borderRadius', value),
@@ -200,7 +229,7 @@ const PageEditor = ({ selectedComp, onUpdate }) => {
         max: 50,
         suffix: 'px'
       }),
-      
+
       React.createElement(NumberEditor, {
         key: 'fontSize',
         value: parseInt(localProps.fontSize) || 14,
@@ -210,7 +239,7 @@ const PageEditor = ({ selectedComp, onUpdate }) => {
         max: 32,
         suffix: 'px'
       }),
-      
+
       React.createElement(SelectEditor, {
         key: 'fontWeight',
         value: localProps.fontWeight || '500',

@@ -218,7 +218,7 @@ function NotificationToggle() {
       {/* 알림 버튼 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 text-slate-600 hover:text-purple-600 transition-all duration-200 bg-white/80 hover:bg-white rounded-lg hover:shadow-md border border-slate-200/50 hover:border-purple-200"
+        className="relative p-2.5 text-pink-600 hover:text-pink-700 transition-all duration-200 bg-white hover:bg-white rounded-lg hover:shadow-md border border-pink-200 hover:border-pink-300"
         title="알림"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

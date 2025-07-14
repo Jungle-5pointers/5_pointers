@@ -33,10 +33,12 @@ function GridGalleryRenderer({ comp, isEditor = false, mode = 'editor', onUpdate
     objectPosition = "center",
     images = [],
     enableModal = true,
-    showNavigation = true,
-    showCaption = true,
     backgroundColor = "#ffffff"
   } = comp.props;
+
+  //기본값을 명시적으로 설정(에디터에서 편집은 불가능하지만 기능은 동작함)
+  const showNavigation = comp.props.showNavigation !== undefined ? comp.props.showNavigation : true;
+  const showCaption = comp.props.showCaption !== undefined ? comp.props.showCaption : true;
 
   // 이미지 크기 자동 계산
   useEffect(() => {

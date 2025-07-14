@@ -54,22 +54,7 @@ function DashboardPage({ user, onLogout }) {
   const mobileItemsPerPage = 4;
   const desktopItemsPerPage = 8;
 
-  // 드롭다운 외부 클릭 감지
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsMyPagesOpen(false);
-      }
-    }
 
-    if (isMyPagesOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMyPagesOpen]);
 
   const categories = [
     { value: 'all', label: '전체' },
@@ -536,24 +521,17 @@ function DashboardPage({ user, onLogout }) {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div
-        className="bg-pink-50 border-b border-pink-100 sticky top-0"
+        className="bg-gradient-to-r from-pink-50 to-rose-50 sticky top-0"
         style={{ position: 'relative', zIndex: 30 }}
       >
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             {/* 로고 섹션 */}
             <div className="flex items-center gap-6">
-              <div className="relative group">
-                <img
-                  src={ddukddakLogo}
-                  alt="DdukDdak"
-                  className="w-13 h-9 object-contain transform group-hover:scale-105 transition duration-300"
-                />
-              </div>
               <div className="flex items-center gap-6">
-                {/* <h1 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-                뚝딱
-              </h1> */}
+                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-blue-800 bg-clip-text text-transparent">
+                DDUKDDAK
+              </h1>
                 <div className="h-6 w-px bg-slate-200"></div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 border border-green-600 shadow-sm"></div>
@@ -566,18 +544,16 @@ function DashboardPage({ user, onLogout }) {
 
             {/* 우측 버튼 그룹 */}
             <div className="flex items-center gap-3">
-              {/* 내 페이지 드롭다운 */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsMyPagesOpen(!isMyPagesOpen)}
-                  className="px-4 py-2 bg-white text-slate-600 hover:text-pink-600 rounded-lg transition-all duration-300 font-medium border border-slate-200 hover:border-pink-200 flex items-center gap-2 group"
-                >
-                  <div className="relative w-5 h-5">
-                    <div className="absolute inset-0 bg-gradient-to-r from-pink-600/20 to-rose-600/20 rounded transform rotate-45 transition-transform duration-300 group-hover:rotate-[225deg]"></div>
-                    <div className="absolute inset-1 bg-gradient-to-r from-pink-600/30 to-rose-600/30 rounded transform rotate-45 transition-transform duration-300 group-hover:rotate-[135deg]"></div>
+              {/* 마이페이지 드롭다운 */}
+              <div className="relative group">
+                <button className="px-4 py-2 bg-white text-slate-600 hover:text-blue-600 rounded-lg transition-all duration-300 font-medium border border-slate-200 hover:border-blue-200 flex items-center gap-2 group">
+                  <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                   </div>
-                  내 페이지
-                  <svg className={`w-4 h-4 transition-transform duration-300 ${isMyPagesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  마이페이지
+                  <svg className="w-4 h-4 transition-transform duration-300 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -784,7 +760,7 @@ function DashboardPage({ user, onLogout }) {
               {/* 로그아웃 버튼 */}
               <button
                 onClick={onLogout}
-                className="px-4 py-2 bg-white text-slate-600 hover:text-pink-600 rounded-lg transition-all duration-300 font-medium border border-slate-200 hover:border-pink-200 flex items-center gap-2 group"
+                className="px-4 py-2 bg-white border border-pink-200 hover:border-pink-300 text-pink-600 hover:text-pink-700 font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 group"
               >
                 <svg className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -797,7 +773,7 @@ function DashboardPage({ user, onLogout }) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 bg-white">
         {/* 메인 헤더 */}
         <div className="text-center mb-8">
           <p className="text-3xl text-slate-500 font-light">
@@ -806,19 +782,18 @@ function DashboardPage({ user, onLogout }) {
         </div>
 
         {/* 테마 선택 섹션 */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-12 border border-pink-100">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-pink-200/50 border border-pink-100 p-8 mb-12">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-xl flex items-center justify-center transform rotate-45">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-700/10 to-blue-800/10 rounded-xl flex items-center justify-center transform rotate-45">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-700 to-blue-800 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-slate-800">이벤트 테마</h3>
-                <p className="text-slate-600">다양한 이벤트 테마를 선택해보세요</p>
+                <h3 className="text-2xl font-bold text-slate-800">이벤트 템플릿</h3>
               </div>
             </div>
 
@@ -908,7 +883,7 @@ function DashboardPage({ user, onLogout }) {
                 <div className="w-16 h-16 mx-auto mb-4">
                   <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-slate-600 font-medium">이벤트 템플릿을 불러오는 중...</p>
+                <p className="text-slate-600 font-medium">큐브 템플릿을 불러오는 중...</p>
               </div>
             ) : (selectedDevice === 'all' && mobileTotalCount === 0 && desktopTotalCount === 0) || 
                  (selectedDevice === 'mobile' && templates.length === 0) || 
@@ -919,7 +894,7 @@ function DashboardPage({ user, onLogout }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <p className="font-medium text-slate-800 mb-2">이 테마의 이벤트 페이지가 없습니다</p>
+                <p className="font-medium text-slate-800 mb-2">이 테마의 큐브가 없습니다</p>
                 <p className="text-slate-600">다른 테마를 선택해보세요</p>
               </div>
             ) : (
@@ -982,7 +957,7 @@ function DashboardPage({ user, onLogout }) {
                                 <div
                                   key={template.id}
                                   onClick={() => handleCreateFromTemplate(template)}
-                                  className="group cursor-pointer bg-white rounded-xl hover:shadow-lg transition-all duration-300"
+                                  className="group cursor-pointer bg-white rounded-xl border border-slate-200 hover:border-blue-200 transition-all duration-300 hover:shadow-lg"
                                 >
                                   <div className="p-4">
                                     {/* 템플릿 캔버스 미리보기 */}
@@ -1084,7 +1059,7 @@ function DashboardPage({ user, onLogout }) {
                                 <div
                                   key={template.id}
                                   onClick={() => handleCreateFromTemplate(template)}
-                                  className="group cursor-pointer bg-white rounded-xl hover:shadow-lg transition-all duration-300"
+                                  className="group cursor-pointer bg-white rounded-xl border border-slate-200 hover:border-blue-200 transition-all duration-300 hover:shadow-lg"
                                 >
                                   <div className="p-4">
                                     {/* 템플릿 캔버스 미리보기 */}
@@ -1212,7 +1187,7 @@ function DashboardPage({ user, onLogout }) {
                           <div
                             key={template.id}
                             onClick={() => handleCreateFromTemplate(template)}
-                            className="group cursor-pointer bg-white rounded-xl hover:shadow-lg transition-all duration-300"
+                            className="group cursor-pointer bg-white rounded-xl border border-slate-200 hover:border-blue-200 transition-all duration-300 hover:shadow-lg"
                           >
                             <div className="p-4">
                               {/* 템플릿 캔버스 미리보기 */}

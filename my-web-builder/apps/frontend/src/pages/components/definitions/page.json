@@ -69,6 +69,11 @@
       "options": ["400", "500", "600", "700"],
       "default": "500"
     },
+    "noBorder": {
+      "type": "boolean",
+      "label": "테두리 제거",
+      "default": true
+    },
     "linkedPageId": {
       "type": "hidden",
       "default": ""
@@ -96,7 +101,8 @@
     "fontWeight": "500",
     "linkedPageId": "",
     "deployedUrl": "",
-    "autoCreated": false
+    "autoCreated": false,
+    "noBorder": true
   },
   "dimensions": {
     "width": 200,

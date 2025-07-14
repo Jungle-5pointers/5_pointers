@@ -73,6 +73,7 @@ export class UsersService {
     // 소유한 페이지들 가져오기
     const ownedPages = await this.pagesRepository.find({
       where: { owner: { id: userId } },
+      relations: ['owner'],
       order: { updatedAt: 'DESC' },
     });
 
@@ -101,11 +102,25 @@ export class UsersService {
     // 소유한 페이지와 초대받은 페이지 합치기
     const allPages = [...ownedPages, ...invitedPages];
 
-    // 최신 업데이트 순으로 정렬
-    return allPages.sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
+    // 배포된 페이지는 deployedAt 기준, 그 외는 updatedAt 기준으로 정렬
+    const sortedPages = allPages.sort((a, b) => {
+      const aTime = a.status === 'DEPLOYED' && a.deployedAt 
+        ? new Date(a.deployedAt).getTime() 
+        : new Date(a.updatedAt).getTime();
+      const bTime = b.status === 'DEPLOYED' && b.deployedAt 
+        ? new Date(b.deployedAt).getTime() 
+        : new Date(b.updatedAt).getTime();
+      return bTime - aTime;
+    });
+    
+    console.log('📋 getMyPages 결과:', {
+      totalPages: sortedPages.length,
+      deployedPages: sortedPages.filter(p => p.status === 'DEPLOYED').length,
+      draftPages: sortedPages.filter(p => p.status === 'DRAFT').length,
+      pages: sortedPages.map(p => ({ id: p.id, status: p.status, title: p.title }))
+    });
+    
+    return sortedPages;
   }
 
   // 네비게이션용 내 페이지 목록 조회 (기존 getMyPages와 동일)
@@ -137,9 +152,6 @@ export class UsersService {
       });
 
       if (!member) {
-        console.error(
-          `페이지 접근 권한 없음: 페이지 ${pageId}, 사용자 ${userId}`,
-        );
         throw new Error('Page not found');
       }
 
@@ -149,7 +161,6 @@ export class UsersService {
       });
 
       if (!page) {
-        console.error(`페이지를 찾을 수 없음: ${pageId}`);
         throw new Error('Page not found');
       }
     }
@@ -264,12 +275,8 @@ export class UsersService {
   async updatePageContent(
     userId: number,
     pageId: string,
-    content: any[],
+    content: any,
   ): Promise<Pages> {
-    console.log(
-      `DB 업데이트 시도: 페이지 ${pageId}, 사용자 ${userId}, 컴포넌트 ${content.length}개`,
-    );
-
     // 먼저 페이지 소유자인지 확인
     let page = await this.pagesRepository.findOne({
       where: { id: pageId, owner: { id: userId } },
@@ -291,9 +298,6 @@ export class UsersService {
       });
 
       if (!member) {
-        console.error(
-          `페이지 접근 권한 없음: 페이지 ${pageId}, 사용자 ${userId}`,
-        );
         throw new Error('Page not found');
       }
 
@@ -303,16 +307,23 @@ export class UsersService {
       });
 
       if (!page) {
-        console.error(`페이지를 찾을 수 없음: ${pageId}`);
         throw new Error('Page not found');
       }
     }
 
-    console.log(`기존 컨텐츠: ${page.content?.length || 0}개 컴포넌트`);
-    page.content = content;
-    const savedPage = await this.pagesRepository.save(page);
-    console.log(`DB 저장 완료: ${savedPage.content?.length || 0}개 컴포넌트`);
+    // content가 객체인 경우 그대로 저장, 아닌 경우 components 배열로 저장
+    if (typeof content === 'object' && !Array.isArray(content)) {
+      page.content = content;
+    } else {
+      page.content = {
+        components: Array.isArray(content) ? content : [],
+        canvasSettings: {
+          canvasHeight: 1080 // 기본값
+        }
+      };
+    }
 
+    const savedPage = await this.pagesRepository.save(page);
     return savedPage;
   }
 
@@ -321,13 +332,41 @@ export class UsersService {
     userId: number,
     pageId: string,
   ): Promise<{ message: string }> {
-    const page = await this.pagesRepository.findOne({
+    // 먼저 페이지 소유자인지 확인
+    let page = await this.pagesRepository.findOne({
       where: { id: pageId, owner: { id: userId } },
     });
 
+    // 페이지 소유자가 아니면 멤버 권한 확인
     if (!page) {
-      throw new Error('Page not found');
+      console.log(`페이지 소유자가 아님, 멤버 권한 확인 중...`);
+
+      // PageMembers 테이블에서 권한 확인
+      const pageMembersRepository =
+        this.pagesRepository.manager.getRepository('PageMembers');
+      const member = await pageMembersRepository.findOne({
+        where: {
+          page: { id: pageId },
+          user: { id: userId },
+          status: 'ACCEPTED',
+        },
+      });
+
+      if (!member) {
+        throw new Error('Page not found or access denied');
+      }
+
+      // 멤버인 경우 페이지 정보 가져오기
+      page = await this.pagesRepository.findOne({
+        where: { id: pageId },
+      });
+
+      if (!page) {
+        throw new Error('Page not found');
+      }
     }
+
+    console.log('🗑️ 페이지 삭제:', { pageId, userId, pageTitle: page.title });
 
     await this.pagesRepository.remove(page);
     return { message: 'Page deleted successfully' };
@@ -351,8 +390,19 @@ export class UsersService {
         where: { id: body.templateId },
       });
       if (template && template.content) {
-        // 컴포넌트 ID 재발급
-        content = this.regenerateComponentIds(template.content);
+        // 컴포넌트 ID 재발급 및 구조 통일
+        let componentsArr = Array.isArray(template.content)
+          ? template.content
+          : template.content.components || [];
+        const canvasSettings =
+          typeof template.content === 'object' && !Array.isArray(template.content)
+            ? template.content.canvasSettings || { canvasHeight: 1080 }
+            : { canvasHeight: 1080 };
+
+        content = {
+          components: this.regenerateComponentIds(componentsArr),
+          canvasSettings,
+        };
       }
     }
 
@@ -893,7 +943,6 @@ export class UsersService {
     componentId: string;
     pageName?: string;
   }) {
-    console.log('📄 새 페이지 생성 시작:', createDto);
 
     try {
       // 1. 새 페이지 생성
@@ -915,7 +964,6 @@ export class UsersService {
       });
 
       const savedPage = await this.pagesRepository.save(newPage);
-      console.log('✅ 새 페이지 생성 완료:', savedPage.id, savedPage.title);
 
       // 2. 부모 페이지의 연결 정보 업데이트
       await this.addPageConnection(createDto.parentPageId, {
@@ -934,7 +982,6 @@ export class UsersService {
         },
       };
     } catch (error) {
-      console.error('❌ 페이지 생성 실패:', error);
       throw new Error('페이지 생성 실패: ' + error.message);
     }
   }
@@ -979,9 +1026,7 @@ export class UsersService {
 
       // 부모 페이지 업데이트
       await this.pagesRepository.update(pageId, { content });
-      console.log('✅ 부모 페이지 연결 정보 업데이트 완료');
     } catch (error) {
-      console.error('❌ 페이지 연결 정보 업데이트 실패:', error);
       throw error;
     }
   }

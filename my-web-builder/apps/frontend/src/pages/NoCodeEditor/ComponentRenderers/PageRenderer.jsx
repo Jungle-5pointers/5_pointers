@@ -16,7 +16,8 @@ const PageRenderer = ({ component, comp, mode = 'editor', onUpdate }) => {
     fontSize = 14,
     fontWeight = '500',
     linkedPageId = '',
-    deployedUrl = ''
+    deployedUrl = '',
+    noBorder = true
   } = actualComp?.props || {};
 
   const handleClick = (e) => {
@@ -75,7 +76,8 @@ const PageRenderer = ({ component, comp, mode = 'editor', onUpdate }) => {
       width: '100%',
       height: '100%',
       backgroundColor,
-      border: `${borderWidth} solid ${borderColor}`,
+      //border: `${borderWidth} solid ${borderColor}`,
+      border: noBorder ? 'none' : `${borderWidth} solid ${borderColor}`,
       borderRadius: 0,
       cursor: 'pointer',
       display: 'flex',

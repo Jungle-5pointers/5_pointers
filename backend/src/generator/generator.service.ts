@@ -60,9 +60,18 @@ export class GeneratorService {
         page = await this.pagesRepository.findOne({ where: { id: projectId } });
         
         if (!page) {
-          // 완전히 새로운 페이지 생성
+          // 완전히 새로운 페이지 생성 - owner 관계도 설정
+          const user = await this.pagesRepository.manager.getRepository('Users').findOne({
+            where: { id: numericUserId }
+          });
+          
+          if (!user) {
+            throw new Error('User not found');
+          }
+          
           page = this.pagesRepository.create({
             id: projectId,
+            owner: user,
             subdomain: subdomain,
             title: 'Deployed Page',
             status: PageStatus.DEPLOYED,
@@ -91,12 +100,30 @@ export class GeneratorService {
 
 
     try {
-      // 6. 컴포넌트 데이터를 pages 테이블의 content 컬럼에 저장
+      // 6. 컴포넌트 데이터를 pages 테이블의 content 컬럼에 저장하고 배포 시간 업데이트
       page.content = { components };
-      await this.pagesRepository.save(page);
+      page.deployedAt = new Date(); // 배포 시간 업데이트
+      page.status = PageStatus.DEPLOYED; // 상태 명시적으로 설정
+      
+      console.log('🚀 배포 저장 전 페이지 상태:', {
+        id: page.id,
+        status: page.status,
+        subdomain: page.subdomain,
+        deployedAt: page.deployedAt
+      });
+      
+      const savedPage = await this.pagesRepository.save(page);
+      
+      console.log('✅ 배포 저장 후 페이지 상태:', {
+        id: savedPage.id,
+        status: savedPage.status,
+        subdomain: savedPage.subdomain,
+        deployedAt: savedPage.deployedAt
+      });
       
       return { url };
     } catch (saveError) {
+      console.error('❌ 배포 저장 실패:', saveError);
       throw new Error(`컴포넌트 저장 실패: ${saveError.message}`);
     }
   }

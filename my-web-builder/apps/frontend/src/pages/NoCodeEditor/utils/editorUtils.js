@@ -8,7 +8,7 @@ export function getComponentDimensions(type) {
     image: { defaultWidth: 200, defaultHeight: 150, minWidth: 100, minHeight: 100 },
     map: { defaultWidth: 375, defaultHeight: 250, minWidth: 200, minHeight: 150 },
     link: { defaultWidth: 150, defaultHeight: 50, minWidth: 100, minHeight: 50 },
-    attend: { defaultWidth: 375, defaultHeight: 200, minWidth: 250, minHeight: 150 },
+    attend: { defaultWidth: 375, defaultHeight: 300, minWidth: 250, minHeight: 150 },
     dday: { defaultWidth: 375, defaultHeight: 200, minWidth: 150, minHeight: 100 },
     weddingContact: { defaultWidth: 375, defaultHeight: 250, minWidth: 250, minHeight: 200 },
     weddingInvite: { defaultWidth: 375, defaultHeight: 400, minWidth: 300, minHeight: 250 },
@@ -20,7 +20,7 @@ export function getComponentDimensions(type) {
     comment: { defaultWidth: 375, defaultHeight: 650, minWidth: 250, minHeight: 150 },
     musicPlayer: { defaultWidth: 50, defaultHeight: 50, minWidth: 50, minHeight: 50 },
     kakaotalkShare: { defaultWidth: 150, defaultHeight: 50, minWidth: 50, minHeight: 50 },
-    slido: { defaultWidth: 375, defaultHeight: 250, minWidth: 300, minHeight: 200 },
+    slido: { defaultWidth: 375, defaultHeight: 450, minWidth: 300, minHeight: 200 },
     linkcopy: { defaultWidth: 50, defaultHeight: 50, minWidth: 32, minHeight: 32 },
   };
   return dimensions[type] || { defaultWidth: 150, defaultHeight: 50, minWidth: 100, minHeight: 50 };

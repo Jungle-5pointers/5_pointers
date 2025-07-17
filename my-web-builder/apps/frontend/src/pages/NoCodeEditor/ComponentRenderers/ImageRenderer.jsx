@@ -167,7 +167,7 @@ function ImageRenderer({ comp, component, isEditor = false, mode = 'editor', isP
     borderRadius: `${borderRadius}px`,
     overflow: 'hidden',
     //position: 'relative',
-    position: 'absolute',
+    //position: 'absolute',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

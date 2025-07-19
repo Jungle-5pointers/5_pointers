@@ -272,10 +272,11 @@ function EditorHeader({
               {otherMembers.slice(0, 2).map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/90"
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${member.status === 'PENDING' ? 'bg-white/40' : 'bg-white/90'}`}
                   style={{
-                    color: member.status === 'PENDING' ? '#D97706' : member.color,
+                    color: member.color,
                   }}
+                  title={member.status === 'PENDING' ? '수락 대기 중' : '편집 중'}
                 >
                   <span
                     className="w-2 h-2 rounded-full"
@@ -306,9 +307,9 @@ function EditorHeader({
                   {otherMembers.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-gray-50"
+                      className={`flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-gray-50 ${member.status === 'PENDING' ? 'bg-gray-50' : ''}`}
                       style={{
-                        color: member.status === 'PENDING' ? '#D97706' : member.color
+                        color: member.color
                       }}
                     >
                       <span
@@ -317,17 +318,13 @@ function EditorHeader({
                       ></span>
                       <span className="flex-1 truncate">{member.nickname}</span>
                       <span
-                        className={`text-xs ${
-                          member.status === 'PENDING'
-                            ? 'text-yellow-600 font-medium'
-                            : 'text-gray-500'
-                        }`}
+                        className="text-xs text-gray-500 font-medium"
                       >
                         {member.isOwner
                           ? '소유자'
                           : member.status === 'PENDING'
-                            ? '초대 대기'
-                            : member.role}
+                            ? '수락대기'
+                            : '편집 중'}
                       </span>
                     </div>
                   ))}

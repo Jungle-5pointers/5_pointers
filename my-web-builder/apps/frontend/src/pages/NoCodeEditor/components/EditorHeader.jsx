@@ -339,19 +339,18 @@ function EditorHeader({
           <button
             onClick={onTemplateSaveOpen}
             className="
-              h-10 px-4 bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white
+              w-10 h-10 bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 text-white
               font-medium rounded-lg transition-all duration-300
-              flex items-center whitespace-nowrap text-sm
+              flex items-center justify-center
             "
+            title="템플릿 저장"
           >
             <span
-              className="material-symbols-outlined text-base mr-1"
-              title="템플릿 저장"
+              className="material-symbols-outlined text-base"
               aria-label="템플릿 저장"
             >
               save
             </span>
-            템플릿 저장
           </button>
         )}
 

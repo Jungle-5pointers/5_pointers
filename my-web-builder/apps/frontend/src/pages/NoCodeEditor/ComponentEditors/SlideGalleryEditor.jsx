@@ -43,35 +43,12 @@ function SlideGalleryEditor({ selectedComp, onUpdate }) {
     <div>
 
 
-      {/* 메인 영역 크기 설정 */}
-      <div style={{ marginBottom: 16 }}>
-        <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          📐 메인 영역 크기
-        </h4>
-        
-        <NumberEditor
-          value={selectedComp.props.containerWidth}
-          onChange={value => updateProperty("containerWidth", value)}
-          label="메인 영역 폭"
-          min={300}
-          max={1200}
-          suffix="px"
-        />
-        
-        <NumberEditor
-          value={selectedComp.props.containerHeight}
-          onChange={value => updateProperty("containerHeight", value)}
-          label="메인 영역 높이"
-          min={200}
-          max={800}
-          suffix="px"
-        />
-      </div>
+      {/* 메인 영역 크기 설정 - 제거됨 */}
 
       {/* 썸네일 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          🖼️ 썸네일 설정
+          썸네일 설정
         </h4>
         
         <NumberEditor
@@ -96,7 +73,7 @@ function SlideGalleryEditor({ selectedComp, onUpdate }) {
       {/* 이미지 목록 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          🖼️ 이미지 관리
+          이미지 관리
         </h4>
         
         <ImageListEditor
@@ -109,7 +86,7 @@ function SlideGalleryEditor({ selectedComp, onUpdate }) {
       {/* 스타일 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          🎨 스타일 설정
+          스타일 설정
         </h4>
         
         <ColorEditor
@@ -128,7 +105,7 @@ function SlideGalleryEditor({ selectedComp, onUpdate }) {
       {/* 표시 옵션 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          👁️ 표시 옵션
+          표시 옵션
         </h4>
         
         <BooleanEditor
@@ -159,7 +136,7 @@ function SlideGalleryEditor({ selectedComp, onUpdate }) {
       {/* 자동 재생 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          ⏯️ 자동 재생 설정
+          자동 재생 설정
         </h4>
         
         <BooleanEditor

@@ -43,35 +43,12 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
     <div>
 
 
-      {/* 영역 크기 설정 */}
-      <div style={{ marginBottom: 16 }}>
-        <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          📐 영역 크기
-        </h4>
-        
-        <NumberEditor
-          value={selectedComp.props.containerWidth}
-          onChange={value => updateProperty("containerWidth", value)}
-          label="영역 폭"
-          min={100}
-          max={2000}
-          suffix="px"
-        />
-        
-        <NumberEditor
-          value={selectedComp.props.containerHeight}
-          onChange={value => updateProperty("containerHeight", value)}
-          label="영역 높이"
-          min={100}
-          max={1500}
-          suffix="px"
-        />
-      </div>
+      {/* 영역 크기 설정 - 제거됨 */}
 
       {/* 그리드 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          📊 그리드 배열
+          그리드 배열
         </h4>
         
         <NumberEditor
@@ -103,7 +80,7 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
       {/* 이미지 목록 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          🖼️ 이미지 관리
+          이미지 관리
         </h4>
         
         <ImageListEditor
@@ -116,7 +93,7 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
       {/* 스타일 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          🎨 스타일 설정
+          스타일 설정
         </h4>
         
         <BorderRadiusEditor
@@ -141,7 +118,7 @@ function GridGalleryEditor({ selectedComp, onUpdate }) {
       {/* 모달 설정 */}
       <div style={{ marginBottom: 16 }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 600, color: "#333" }}>
-          ⚙️ 모달 설정
+          모달 설정
         </h4>
         
         <BooleanEditor

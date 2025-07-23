@@ -90,6 +90,10 @@ body {
     width: 100vw !important;
     max-width: 100vw !important;
     overflow-x: hidden !important;
+    display: flex !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   /* 스케일된 컴포넌트들이 화면을 벗어나지 않도록 */
@@ -97,5 +101,14 @@ body {
     max-width: 100vw !important;
     box-sizing: border-box !important;
     overflow: visible; /* Transform된 내용이 보이도록 */
+  }
+
+  /* 모바일에서 컨테이너 중앙 정렬 강제 */
+  body > div:first-child {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }

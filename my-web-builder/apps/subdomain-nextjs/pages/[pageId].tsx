@@ -356,8 +356,9 @@ const DynamicPageRenderer = ({
           height: `${contentHeight * scale}px`,
           position: 'relative',
           overflow: 'hidden',
-          display: isMobileViewport ? 'block' : 'flex',
-          justifyContent: isMobileViewport ? 'flex-start' : 'center', // 모바일에서는 왼쪽, 데스크톱에서는 중앙
+          display: 'flex',
+          justifyContent: 'center', // 항상 중앙 정렬
+          alignItems: 'flex-start',
         }}
       >
         <div
@@ -365,10 +366,7 @@ const DynamicPageRenderer = ({
             width: `${BASE_MOBILE_WIDTH}px`,
             height: `${contentHeight}px`,
             transform: `scale(${scale})`,
-            transformOrigin: '0 0',
-            ...(isMobileViewport && {
-              width: '100%', // 모바일에서는 전체 너비 사용
-            }),
+            transformOrigin: 'center top', // 중앙 상단 기준으로 스케일링
           }}
         >
           {componentsToRender.map((comp: ComponentData) => {
@@ -743,7 +741,6 @@ const RenderedPage = ({
         <title>
           {pageTitle || `${subdomain || '페이지'} - My Web Builder`}
         </title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
 
         {/* Open Graph 메타태그 */}
         <meta
